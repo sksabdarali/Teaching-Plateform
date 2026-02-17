@@ -2,7 +2,6 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const path = require('path');
 
 dotenv.config();
 
@@ -78,14 +77,10 @@ app.use('/api/motivation', require('./routes/motivation'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/doubts', require('./routes/doubts'));
 
-// Serve static assets in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend/build')));
-
-  app.get('*', (req, res) => {
-    res.sendFile(path.resolve(__dirname, '../frontend', 'build', 'index.html'));
-  });
-}
+// Health check endpoint
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'Teaching Platform API is running' });
+});
 
 const PORT = process.env.PORT || 5000;
 
