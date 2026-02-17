@@ -8,7 +8,14 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://teaching-plateform.onrender.com',
+    'http://localhost:3000',
+    'http://localhost:5000'
+  ],
+  credentials: true
+}));
 app.use(express.json());
 
 // Multer error handling middleware - must be added before routes
