@@ -16,37 +16,37 @@ app.use(express.json());
 app.use((error, req, res, next) => {
   if (error instanceof require('multer').MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ 
-        message: 'File too large. Maximum size is 5MB.' 
+      return res.status(400).json({
+        message: 'File too large. Maximum size is 5MB.'
       });
     }
     if (error.code === 'LIMIT_UNEXPECTED_FILE') {
-      return res.status(400).json({ 
-        message: 'Too many files or unexpected field name. Expected "syllabusFile".' 
+      return res.status(400).json({
+        message: 'Too many files or unexpected field name. Expected "syllabusFile".'
       });
     }
     if (error.code === 'LIMIT_PART_COUNT') {
-      return res.status(400).json({ 
-        message: 'Too many parts in the form.' 
+      return res.status(400).json({
+        message: 'Too many parts in the form.'
       });
     }
     if (error.code === 'LIMIT_FIELD_KEY') {
-      return res.status(400).json({ 
-        message: 'Field key too long.' 
+      return res.status(400).json({
+        message: 'Field key too long.'
       });
     }
     if (error.code === 'LIMIT_FIELD_VALUE') {
-      return res.status(400).json({ 
-        message: 'Field value too long.' 
+      return res.status(400).json({
+        message: 'Field value too long.'
       });
     }
     if (error.code === 'LIMIT_FIELD_COUNT') {
-      return res.status(400).json({ 
-        message: 'Too many fields in the form.' 
+      return res.status(400).json({
+        message: 'Too many fields in the form.'
       });
     }
-    return res.status(400).json({ 
-      message: `File upload error: ${error.message}` 
+    return res.status(400).json({
+      message: `File upload error: ${error.message}`
     });
   }
   next(error);
@@ -82,7 +82,7 @@ app.use('/api/doubts', require('./routes/doubts'));
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../frontend/build')));
 
-  app.get('*', (req, res) => {
+  app.get('(.*)', (req, res) => {
     res.sendFile(path.resolve(__dirname, '../frontend', 'build', 'index.html'));
   });
 }
