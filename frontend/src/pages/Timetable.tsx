@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import axios from 'axios';
 
@@ -37,13 +37,7 @@ const TimetablePage: React.FC = () => {
   const [subjectsList, setSubjectsList] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>('');
 
-  useEffect(() => {
-    if (token) {
-      fetchTimetables();
-    }
-  }, [token]);
-
-  const fetchTimetables = async () => {
+  const fetchTimetables = useCallback(async () => {
     try {
       const response = await axios.get('/api/timetables', {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -57,7 +51,13 @@ const TimetablePage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    if (token) {
+      fetchTimetables();
+    }
+  }, [token, fetchTimetables]);
 
   const openGenerateModal = () => {
     setSubjectsList([]);
