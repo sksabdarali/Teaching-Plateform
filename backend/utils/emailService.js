@@ -8,12 +8,19 @@ const createTransporter = () => {
     return null;
   }
 
+  console.log('📧 Configuring email transporter for:', process.env.EMAIL_USER);
+
   return nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // use TLS
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
+    // Add debug and logger to capture more info in server logs
+    debug: true,
+    logger: true
   });
 };
 

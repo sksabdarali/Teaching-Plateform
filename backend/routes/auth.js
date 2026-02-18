@@ -107,8 +107,10 @@ router.post('/verify-otp', async (req, res) => {
     // Clean up OTP data
     await OTP.deleteOne({ email: email.toLowerCase() });
 
-    // Send welcome email (non-blocking)
-    sendWelcomeEmail(name, email).catch(() => { });
+    // Send welcome email (non-blocking) but log failures
+    sendWelcomeEmail(name, email).catch((err) => {
+      console.error(`❌ Non-blocking error: Failed to send welcome email to ${email}:`, err.message);
+    });
 
     const token = generateToken(user._id);
 
