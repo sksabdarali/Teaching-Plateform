@@ -163,6 +163,11 @@ router.post('/register', async (req, res) => {
 
     await user.save();
 
+    // Send welcome email (non-blocking) but log failures
+    sendWelcomeEmail(name, email).catch((err) => {
+      console.error(`❌ Non-blocking error: Failed to send welcome email to ${email}:`, err.message);
+    });
+
     const token = generateToken(user._id);
 
     res.status(201).json({
@@ -285,8 +290,10 @@ router.post('/google', async (req, res) => {
 
         await user.save();
 
-        // Send welcome email (non-blocking)
-        sendWelcomeEmail(name, email).catch(() => { });
+        // Send welcome email (non-blocking) but log failures
+        sendWelcomeEmail(name, email).catch((err) => {
+          console.error(`❌ Non-blocking error: Failed to send welcome email to ${email}:`, err.message);
+        });
       } catch (saveError) {
         console.error('Error saving user:', saveError);
         return res.status(500).json({ message: 'Error creating user account', error: saveError.message });
