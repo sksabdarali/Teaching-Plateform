@@ -83,13 +83,15 @@ const processAIRequest = async (prompt, options = {}) => {
           const geminiModels = options.model
             ? [options.model]
             : [
-              "gemini-3-pro-preview",       // Gemini 3 Pro — best quality
-              "gemini-2.5-pro",             // Gemini 2.5 Pro — unlimited TPM
-              "gemini-3-flash-preview",     // Gemini 3 Flash — fast + capable
-              "gemini-2.5-flash",           // Gemini 2.5 Flash — reliable workhorse
-              "gemini-2.5-flash-lite",      // Gemini 2.5 Flash Lite — lightweight
-              "gemini-2.0-flash",           // Gemini 2.0 Flash — stable fallback
-              "gemini-2.0-flash-lite",      // Gemini 2.0 Flash Lite — lightweight fallback
+              "gemini-2.0-flash-exp",       // Gemini 2.0 Flash — Ultra fast
+              "gemini-1.5-flash-latest",    // Gemini 1.5 Flash — Recommended for speed
+              "gemini-3-flash-preview",     // Gemini 3 Flash — as requested
+              "gemini-2.0-flash",           // Gemini 2.0 Flash stable
+              "gemini-2.5-flash",           // Gemini 2.5 Flash
+              "gemini-3-pro-preview",       // Gemini 3 Pro — best quality fallback
+              "gemini-2.5-pro",             // Gemini 2.5 Pro
+              "gemini-2.5-flash-lite",      // Gemini 2.5 Flash Lite
+              "gemini-2.0-flash-lite",      // Gemini 2.0 Flash Lite
               "gemma-3-27b-it",             // Gemma 3 27B — largest open model
               "gemma-3-12b-it",             // Gemma 3 12B
               "gemma-3-4b-it",              // Gemma 3 4B

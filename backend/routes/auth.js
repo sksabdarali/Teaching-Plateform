@@ -1,30 +1,15 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
 const User = require('../models/User');
+const OTP = require('../models/OTP');
 const generateToken = require('../utils/generateToken');
 const { OAuth2Client } = require('google-auth-library');
 const auth = require('../middleware/auth');
 const { sendWelcomeEmail, sendOTPEmail } = require('../utils/emailService');
 
 const router = express.Router();
-
-// Google OAuth client
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-// In-memory OTP store for pending registrations (email -> { otp, expiry, name, password, grade, board, subjects })
-const pendingOTPs = new Map();
-
-// Clean up expired OTPs every 5 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [email, data] of pendingOTPs.entries()) {
-    if (data.expiry < now) {
-      pendingOTPs.delete(email);
-    }
-  }
-}, 5 * 60 * 1000);
 
 // @route   POST api/auth/send-otp
 // @desc    Send OTP to email for verification
@@ -45,18 +30,23 @@ router.post('/send-otp', async (req, res) => {
 
     // Generate 6-digit OTP
     const otp = String(Math.floor(100000 + Math.random() * 900000));
-    const expiry = Date.now() + 10 * 60 * 1000; // 10 minutes
 
-    // Store OTP and registration data in memory
-    pendingOTPs.set(email, {
-      otp,
-      expiry,
-      name,
-      password,
-      grade,
-      board,
-      subjects: subjects || []
-    });
+    // Save/Update OTP and registration data in MongoDB
+    await OTP.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      {
+        otp,
+        registrationData: {
+          name,
+          password,
+          grade,
+          board,
+          subjects: subjects || []
+        },
+        createdAt: new Date()
+      },
+      { upsert: true, new: true }
+    );
 
     // Send OTP email
     await sendOTPEmail(email, otp);
@@ -81,36 +71,30 @@ router.post('/verify-otp', async (req, res) => {
       return res.status(400).json({ message: 'Email and OTP are required' });
     }
 
-    const pendingData = pendingOTPs.get(email);
+    const otpDoc = await OTP.findOne({ email: email.toLowerCase() });
 
-    if (!pendingData) {
-      return res.status(400).json({ message: 'No verification pending for this email. Please request a new code.' });
-    }
-
-    // Check expiry
-    if (Date.now() > pendingData.expiry) {
-      pendingOTPs.delete(email);
-      return res.status(400).json({ message: 'Verification code has expired. Please request a new one.' });
+    if (!otpDoc) {
+      return res.status(400).json({ message: 'No verification pending for this email or code expired. Please request a new code.' });
     }
 
     // Check OTP
-    if (pendingData.otp !== otp.trim()) {
+    if (otpDoc.otp !== otp.trim()) {
       return res.status(400).json({ message: 'Invalid verification code. Please try again.' });
     }
 
     // OTP verified — create the user account
-    const { name, password, grade, board, subjects } = pendingData;
+    const { name, password, grade, board, subjects } = otpDoc.registrationData;
 
     // Double-check user doesn't already exist
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      pendingOTPs.delete(email);
+      await OTP.deleteOne({ email: email.toLowerCase() });
       return res.status(400).json({ message: 'User already exists' });
     }
 
     const user = new User({
       name,
-      email,
+      email: email.toLowerCase(),
       password,
       grade,
       board,
@@ -121,7 +105,7 @@ router.post('/verify-otp', async (req, res) => {
     await user.save();
 
     // Clean up OTP data
-    pendingOTPs.delete(email);
+    await OTP.deleteOne({ email: email.toLowerCase() });
 
     // Send welcome email (non-blocking)
     sendWelcomeEmail(name, email).catch(() => { });
@@ -203,21 +187,31 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.time(`Login attempt for ${email}`);
 
     // Check for user
+    console.time('DB lookup');
     let user = await User.findOne({ email });
+    console.timeEnd('DB lookup');
+
     if (!user) {
+      console.timeEnd(`Login attempt for ${email}`);
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     // Check password
+    console.time('Password check');
     const isMatch = await bcrypt.compare(password, user.password);
+    console.timeEnd('Password check');
+
     if (!isMatch) {
+      console.timeEnd(`Login attempt for ${email}`);
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
     const token = generateToken(user._id);
 
+    console.timeEnd(`Login attempt for ${email}`);
     res.json({
       token,
       user: {
