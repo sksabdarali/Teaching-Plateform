@@ -23,6 +23,16 @@ interface StudyMaterial {
   relatedTopics: string[];
 }
 
+const renderTextWithBold = (text: string) => {
+  if (!text) return null;
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part: string, i: number) =>
+    part.startsWith('**') && part.endsWith('**')
+      ? <strong key={i}>{part.slice(2, -2)}</strong>
+      : part
+  );
+};
+
 const StudyMaterialsPage: React.FC = () => {
   const { token } = useAuth();
   const { showLoading, hideLoading } = useLoading();
@@ -236,25 +246,53 @@ const StudyMaterialsPage: React.FC = () => {
           <h2 className="text-2xl font-bold text-gray-800 mb-4">{materials.title}</h2>
 
           <div className="prose max-w-none mb-6">
-            {materials.content.split('\n').map((line: string, i: number) => {
-              const trimmed = line.trim();
-              if (!trimmed) return <br key={i} />;
-              // Render markdown-style headings
-              if (trimmed.startsWith('### ')) return <h4 key={i} className="text-lg font-semibold text-gray-800 mt-3 mb-1">{trimmed.slice(4)}</h4>;
-              if (trimmed.startsWith('## ')) return <h3 key={i} className="text-xl font-semibold text-gray-800 mt-4 mb-1">{trimmed.slice(3)}</h3>;
-              if (trimmed.startsWith('# ')) return <h2 key={i} className="text-2xl font-bold text-gray-800 mt-4 mb-2">{trimmed.slice(2)}</h2>;
-              // Render bold text wrapped in ** **
-              const parts = trimmed.split(/(\*\*[^*]+\*\*)/g);
-              return (
-                <p key={i} className="text-gray-700 mb-2">
-                  {parts.map((part: string, j: number) =>
-                    part.startsWith('**') && part.endsWith('**')
-                      ? <strong key={j}>{part.slice(2, -2)}</strong>
-                      : part
-                  )}
-                </p>
-              );
-            })}
+            {(() => {
+              let displayContent = materials.content;
+
+              // If content looks like JSON it might have slipped through the parser
+              if (displayContent.trim().startsWith('{') && displayContent.trim().endsWith('}')) {
+                try {
+                  const parsed = JSON.parse(displayContent);
+                  if (parsed.content) displayContent = parsed.content;
+                  else if (parsed.explanation) displayContent = parsed.explanation;
+                } catch (e) {
+                  // Not valid JSON, continue with original
+                }
+              }
+
+              return displayContent.split('\n').map((line: string, i: number) => {
+                const trimmed = line.trim();
+                if (!trimmed) return <div key={i} className="h-2" />;
+
+                // Render markdown-style headings
+                if (trimmed.startsWith('### ')) return <h4 key={i} className="text-lg font-bold text-gray-800 mt-4 mb-2">{trimmed.slice(4)}</h4>;
+                if (trimmed.startsWith('## ')) return <h3 key={i} className="text-xl font-bold text-gray-800 mt-5 mb-2">{trimmed.slice(3)}</h3>;
+                if (trimmed.startsWith('# ')) return <h2 key={i} className="text-2xl font-bold text-gray-800 mt-6 mb-3">{trimmed.slice(2)}</h2>;
+
+                // Render lists
+                if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+                  return <li key={i} className="text-gray-700 ml-4 mb-1 list-none flex items-start">
+                    <span className="mr-2 text-blue-500">•</span>
+                    <span>{renderTextWithBold(trimmed.slice(2))}</span>
+                  </li>;
+                }
+
+                // Render numbered lists
+                const numMatch = trimmed.match(/^(\d+)\.\s+(.*)/);
+                if (numMatch) {
+                  return <li key={i} className="text-gray-700 ml-4 mb-1 list-none flex items-start">
+                    <span className="mr-2 font-bold text-blue-600">{numMatch[1]}.</span>
+                    <span>{renderTextWithBold(numMatch[2])}</span>
+                  </li>;
+                }
+
+                return (
+                  <p key={i} className="text-gray-700 mb-2 leading-relaxed">
+                    {renderTextWithBold(trimmed)}
+                  </p>
+                );
+              });
+            })()}
           </div>
 
           {materials.examples && materials.examples.length > 0 && (
@@ -264,8 +302,8 @@ const StudyMaterialsPage: React.FC = () => {
                 {materials.examples.map((example, index) => (
                   <div key={index} className="border-l-4 border-blue-500 pl-4 py-2 bg-gray-50 rounded">
                     <p className="font-medium text-gray-800 mb-1">Example {index + 1}:</p>
-                    <p className="text-gray-700 mb-2"><strong>Problem:</strong> {example.problem}</p>
-                    <p className="text-gray-700"><strong>Solution:</strong> {example.solution}</p>
+                    <p className="text-gray-700 mb-2"><strong>Problem:</strong> {renderTextWithBold(example.problem)}</p>
+                    <p className="text-gray-700"><strong>Solution:</strong> {renderTextWithBold(example.solution)}</p>
                   </div>
                 ))}
               </div>
@@ -301,8 +339,8 @@ const StudyMaterialsPage: React.FC = () => {
                 {materials.practiceProblems.map((problem, index) => (
                   <div key={index} className="border-l-4 border-green-500 pl-4 py-2 bg-gray-50 rounded">
                     <p className="font-medium text-gray-800 mb-1">Problem {index + 1}:</p>
-                    <p className="text-gray-700 mb-2"><strong>Question:</strong> {problem.problem}</p>
-                    <p className="text-gray-700"><strong>Solution:</strong> {problem.solution}</p>
+                    <p className="text-gray-700 mb-2"><strong>Question:</strong> {renderTextWithBold(problem.problem)}</p>
+                    <p className="text-gray-700"><strong>Solution:</strong> {renderTextWithBold(problem.solution)}</p>
                   </div>
                 ))}
               </div>

@@ -86,8 +86,8 @@ const processAIRequest = async (prompt, options = {}) => {
               "gemini-3-pro",               // Gemini 3 Pro — Highest quality
               "gemini-2.5-pro",             // Gemini 2.5 Pro
               "gemini-2-pro-exp",           // Gemini 2 Pro Exp
-              "gemini-3-flash",             // Gemini 3 Flash
               "gemini-2.5-flash",           // Gemini 2.5 Flash
+              "gemini-3-flash",             // Gemini 3 Flash
               "gemini-2-flash",             // Gemini 2 Flash
               "gemini-2-flash-exp",         // Gemini 2 Flash Exp
               "gemini-2.5-flash-lite",      // Gemini 2.5 Flash Lite
@@ -179,13 +179,16 @@ const extractJsonFromResponse = (responseText) => {
       throw new Error('Invalid response text provided');
     }
 
+    // Clean the response text from common AI prefixes/suffixes
+    let cleanedResponse = responseText.trim();
+
     // Look for JSON within code blocks first
-    const codeBlockMatch = responseText.match(/```(?:json|javascript)?\s*\n?([\s\S]*?)\s*```/i);
-    let jsonString = codeBlockMatch ? codeBlockMatch[1].trim() : responseText.trim();
+    const codeBlockMatch = cleanedResponse.match(/```(?:json|javascript)?\s*\n?([\s\S]*?)\s*```/i);
+    let jsonString = codeBlockMatch ? codeBlockMatch[1].trim() : cleanedResponse;
 
     // If no code block, look for JSON between curly braces/brackets
     if (!jsonString.startsWith('{') && !jsonString.startsWith('[')) {
-      const jsonMatch = responseText.match(/\{[\s\S]*?\}|\[[\s\S]*?\]/);
+      const jsonMatch = jsonString.match(/\{[\s\S]*\}/) || jsonString.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         jsonString = jsonMatch[0];
       }
@@ -202,62 +205,61 @@ const extractJsonFromResponse = (responseText) => {
     } catch (parseError) {
       // Try to fix common JSON issues
       try {
-        // Remove common markdown artifacts
-        jsonString = jsonString.replace(/^```[a-z]*\s*\n?/gi, '');
-        jsonString = jsonString.replace(/```\s*$/gi, '');
-        jsonString = jsonString.replace(/^`+|`+$/g, '');
-        jsonString = jsonString.trim();
+        let fixedJson = jsonString;
 
-        // Remove trailing commas before closing braces/brackets
-        jsonString = jsonString.replace(/,\s*([}\]])/g, '$1');
-        jsonString = jsonString.replace(/,\s*(?=\s*[}\]])/g, '');
+        // 1. Remove common markdown artifacts
+        fixedJson = fixedJson.replace(/^```[a-z]*\s*\n?/gi, '');
+        fixedJson = fixedJson.replace(/```\s*$/gi, '');
+        fixedJson = fixedJson.replace(/^`+|`+$/g, '');
+        fixedJson = fixedJson.trim();
 
-        // Fix common formatting issues
-        jsonString = jsonString.replace(/,\s*\n\s*[}\]]/g, match => match.trim());
-
-        // Remove any remaining markdown or text artifacts
-        jsonString = jsonString.replace(/^.*?\{/, '{'); // Remove text before first {
-        jsonString = jsonString.replace(/\}[^}]*$/, '}'); // Remove text after last }
-
-        // Handle unescaped quotes and special characters in strings
-        // Find all string values and properly escape them
-        jsonString = jsonString.replace(/:"([^"\\]*(?:\\.[^"\\]*)*)"/g, function (match, capturedString) {
-          try {
-            // Try to parse the string value to see if it's properly escaped
-            JSON.parse('"' + capturedString + '"');
-            return match; // If it parses fine, return as-is
-          } catch (e) {
-            // If it doesn't parse, escape it properly
-            const escaped = capturedString
-              .replace(/\\/g, '\\\\') // Escape backslashes first
-              .replace(/"/g, '\\"')    // Escape quotes
-              .replace(/\n/g, '\\n')    // Escape newlines
-              .replace(/\r/g, '\\r')    // Escape carriage returns
-              .replace(/\t/g, '\\t');   // Escape tabs
-            return ':"' + escaped + '"';
-          }
+        // 2. Handle raw newlines within strings (CRITICAL FIX)
+        // This looks for content between quotes and replaces literal newlines with \n
+        fixedJson = fixedJson.replace(/"([^"\\]*(?:\\.[^"\\]*)*)"/gs, function (match, inner) {
+          return '"' + inner.replace(/\n/g, '\\n').replace(/\r/g, '\\r') + '"';
         });
 
-        parsedData = JSON.parse(jsonString);
+        // 3. Remove trailing commas before closing braces/brackets
+        fixedJson = fixedJson.replace(/,\s*([}\]])/g, '$1');
+
+        // 4. Remove any remaining text before/after the JSON object
+        const firstBrace = fixedJson.indexOf('{');
+        const lastBrace = fixedJson.lastIndexOf('}');
+        if (firstBrace !== -1 && lastBrace !== -1) {
+          fixedJson = fixedJson.substring(firstBrace, lastBrace + 1);
+        }
+
+        parsedData = JSON.parse(fixedJson);
       } catch (fixError) {
         console.error('Failed to parse and fix JSON:', fixError.message);
-        console.error('JsonString attempted:', jsonString.substring(0, 500) + '...');
-        console.error('Response text (first 500 chars):', responseText.substring(0, 500) + '...');
 
-        // If all parsing attempts fail, try a more aggressive approach
+        // If all parsing attempts fail, try to extract fields using regex as a last resort
         try {
-          // Extract content from the response as a fallback
-          // Don't add truncation message, just return the raw content
-          const fallbackData = {
-            title: responseText.match(/"title"\s*:\s*"([^"]+)/i)?.[1] || 'Study Materials',
-            content: responseText.substring(0, 15000),
+          const titleMatch = responseText.match(/"title"\s*:\s*"([^"]+)"/i);
+          const contentMatch = responseText.match(/"content"\s*:\s*"([\s\S]*?)"(?=\s*,\s*"|(?=\s*\}))/i);
+
+          if (contentMatch) {
+            return {
+              title: titleMatch ? titleMatch[1] : 'Study Materials',
+              content: contentMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"'),
+              examples: [],
+              practiceProblems: [],
+              keyPoints: [],
+              studyTips: [],
+              relatedTopics: []
+            };
+          }
+
+          // Absolute last resort fallback
+          return {
+            title: 'Study Materials',
+            content: responseText.replace(/^```[a-z]*\s*\n?|```$/g, '').trim(),
             examples: [],
             practiceProblems: [],
             keyPoints: [],
             studyTips: [],
             relatedTopics: []
           };
-          return fallbackData;
         } catch (fallbackError) {
           throw new Error(`Could not parse JSON: ${parseError.message}`);
         }
@@ -267,7 +269,6 @@ const extractJsonFromResponse = (responseText) => {
     return parsedData;
   } catch (error) {
     console.error('Error parsing JSON from AI response:', error);
-    console.error('Response text (first 500 chars):', responseText.substring(0, 500) + '...');
     throw new Error('Invalid JSON response from AI: ' + error.message);
   }
 };

@@ -56,25 +56,25 @@ const validateStudyMaterials = (data) => {
   return {
     title: typeof data.title === 'string' ? data.title.substring(0, 200) : 'Untitled',
     content: typeof data.content === 'string' ? data.content.replace(/^```[a-z]*\s*\n?|```$/g, '').trim().substring(0, 20000) : '',
-    examples: Array.isArray(data.examples) ? data.examples.slice(0, 5).map(ex => 
+    examples: Array.isArray(data.examples) ? data.examples.slice(0, 5).map(ex =>
       typeof ex === 'object' && ex.problem && ex.solution ? {
         problem: ex.problem.substring(0, 1000),
         solution: ex.solution.substring(0, 2000)
       } : typeof ex === 'string' ? { problem: ex.substring(0, 1000), solution: 'Solution not provided' } : { problem: 'Problem not provided', solution: 'Solution not provided' }
     ) : [],
-    practiceProblems: Array.isArray(data.practiceProblems) ? data.practiceProblems.slice(0, 3).map(problem => 
+    practiceProblems: Array.isArray(data.practiceProblems) ? data.practiceProblems.slice(0, 3).map(problem =>
       typeof problem === 'object' && problem.problem && problem.solution ? {
         problem: problem.problem.substring(0, 1000),
         solution: problem.solution.substring(0, 2000)
       } : typeof problem === 'string' ? { problem: problem.substring(0, 1000), solution: 'Solution not provided' } : { problem: 'Problem not provided', solution: 'Solution not provided' }
     ) : [],
-    keyPoints: Array.isArray(data.keyPoints) ? data.keyPoints.slice(0, 10).map(point => 
+    keyPoints: Array.isArray(data.keyPoints) ? data.keyPoints.slice(0, 10).map(point =>
       typeof point === 'string' ? point.substring(0, 200) : ''
     ) : [],
-    studyTips: Array.isArray(data.studyTips) ? data.studyTips.slice(0, 5).map(tip => 
+    studyTips: Array.isArray(data.studyTips) ? data.studyTips.slice(0, 5).map(tip =>
       typeof tip === 'string' ? tip.substring(0, 200) : ''
     ) : [],
-    relatedTopics: Array.isArray(data.relatedTopics) ? data.relatedTopics.slice(0, 10).map(topic => 
+    relatedTopics: Array.isArray(data.relatedTopics) ? data.relatedTopics.slice(0, 10).map(topic =>
       typeof topic === 'string' ? topic.substring(0, 100) : ''
     ) : []
   };
@@ -220,11 +220,11 @@ const generateQuiz = async (req, res) => {
         .filter(q => q.question && Array.isArray(q.options) && q.options.length >= 2)
         .map(q => ({
           question: typeof q.question === 'string' ? q.question.substring(0, 500) : 'Untitled question',
-          options: Array.isArray(q.options) 
+          options: Array.isArray(q.options)
             ? q.options.slice(0, 4).map(opt => typeof opt === 'string' ? opt.substring(0, 200) : 'Option')
             : ['Option 1', 'Option 2', 'Option 3', 'Option 4'],
-          correctAnswer: typeof q.correctAnswer === 'number' && q.correctAnswer >= 0 && q.correctAnswer < 4 
-            ? q.correctAnswer 
+          correctAnswer: typeof q.correctAnswer === 'number' && q.correctAnswer >= 0 && q.correctAnswer < 4
+            ? q.correctAnswer
             : 0,
           explanation: typeof q.explanation === 'string' ? q.explanation.substring(0, 500) : 'No explanation provided'
         }));
@@ -463,20 +463,25 @@ const generateStudyMaterials = async (req, res) => {
       - 3-5 study tips
       - 3-5 related topics
       
-      FORMAT THE RESPONSE AS RAW JSON ONLY WITHOUT MARKDOWN CODE BLOCKS:
+      FORMAT THE RESPONSE AS A SINGLE VALID JSON OBJECT:
+      - Use ONLY standard JSON (no comments, no triple backticks).
+      - CRITICAL: Escape all double quotes within strings using a backslash (\").
+      - CRITICAL: Use literal "\\n" strings for newlines within the "content" or "solution" fields. DO NOT use raw newlines (Enter key) inside your JSON string values.
+      
+      Structure:
       {
         "title": "Detailed Study Materials: [topic]",
-        "content": "Comprehensive explanation of the concepts...",
+        "content": "Comprehensive explanation using markdown-style headings (# Title, ## Section, ### Subsection) and bold text (**bold**). Use \\n for newlines.",
         "examples": [
           {
             "problem": "Example problem statement",
-            "solution": "Step-by-step solution with explanation"
+            "solution": "Step-by-step solution with explanation. Use \\n for newlines."
           }
         ],
         "practiceProblems": [
           {
             "problem": "Practice problem statement",
-            "solution": "Complete solution with explanation"
+            "solution": "Complete solution with explanation. Use \\n for newlines."
           }
         ],
         "keyPoints": ["Key point 1", "Key point 2"],
@@ -485,7 +490,6 @@ const generateStudyMaterials = async (req, res) => {
       }
       
       Make the content educational, comprehensive, and suitable for students.
-      DO NOT INCLUDE MARKDOWN CODE BLOCK SYNTAX (no \`\`\`json at the beginning or end).
       RETURN ONLY THE JSON OBJECT.
     `;
 
