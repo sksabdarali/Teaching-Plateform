@@ -2,7 +2,12 @@ const { Resend } = require('resend');
 
 // Initialize Resend with API Key from environment variables
 // Render handles environment variables directly, so no need for dotenv here.
-const resend = new Resend(process.env.RESEND_API_KEY);
+let resend;
+if (process.env.RESEND_API_KEY) {
+  resend = new Resend(process.env.RESEND_API_KEY);
+} else {
+  console.warn("⚠️ RESEND_API_KEY is not defined. Email sending will be disabled.");
+}
 
 /**
  * Send welcome email to new user
@@ -10,6 +15,11 @@ const resend = new Resend(process.env.RESEND_API_KEY);
  * @param {string} email - User's email address
  */
 const sendWelcomeEmail = async (name, email) => {
+  if (!resend) {
+    console.error("❌ Cannot send welcome email: RESEND_API_KEY is missing.");
+    return;
+  }
+
   try {
     const { data, error } = await resend.emails.send({
       from: 'Teaching Platform <onboarding@resend.dev>', // Replace with your verified domain in production
@@ -88,6 +98,13 @@ const sendWelcomeEmail = async (name, email) => {
  * @param {string} otp - 6-digit verification code
  */
 const sendOTPEmail = async (email, otp) => {
+  if (!resend) {
+    console.error("❌ Cannot send OTP email: RESEND_API_KEY is missing.");
+    // We should probably throw here so the user knows registration failed due to server config,
+    // but to match previous behavior/expectations we'll throw a specific error.
+    throw new Error('Email service not configured (missing API key).');
+  }
+
   try {
     const { data, error } = await resend.emails.send({
       from: 'Teaching Platform <onboarding@resend.dev>', // Replace with your verified domain in production
