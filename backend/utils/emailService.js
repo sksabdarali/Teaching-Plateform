@@ -9,6 +9,9 @@ if (process.env.RESEND_API_KEY) {
   console.warn("⚠️ RESEND_API_KEY is not defined. Email sending will be disabled.");
 }
 
+// Helper to get the sender email
+const getSenderEmail = () => process.env.EMAIL_FROM || 'Teaching Platform <onboarding@resend.dev>';
+
 /**
  * Send welcome email to new user
  * @param {string} name - User's name
@@ -22,7 +25,7 @@ const sendWelcomeEmail = async (name, email) => {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Teaching Platform <onboarding@resend.dev>', // Replace with your verified domain in production
+      from: getSenderEmail(), // Replace with your verified domain in production if set in env
       to: [email],
       subject: '🎉 Welcome to Teaching Platform!',
       html: `
@@ -82,7 +85,13 @@ const sendWelcomeEmail = async (name, email) => {
     });
 
     if (error) {
-      console.error(`❌ Resend Error: Failed to send welcome email to ${email}:`, error);
+      // Log specific validation errors for clarity (e.g., trying to send to unverified email)
+      if (error.statusCode === 403 && error.name === 'validation_error') {
+        console.error(`⚠️ Resend Validation Error: ${error.message}`);
+        console.warn(`👉 Tip: In Resend 'Testing' mode, you can ONLY send emails to your own verified address. Verify a domain to send to others.`);
+      } else {
+        console.error(`❌ Resend Error: Failed to send welcome email to ${email}:`, error);
+      }
       return;
     }
 
@@ -107,7 +116,7 @@ const sendOTPEmail = async (email, otp) => {
 
   try {
     const { data, error } = await resend.emails.send({
-      from: 'Teaching Platform <onboarding@resend.dev>', // Replace with your verified domain in production
+      from: getSenderEmail(), // Replace with your verified domain in production if set in env
       to: [email],
       subject: '🔐 Your Verification Code - Teaching Platform',
       html: `
@@ -147,13 +156,21 @@ const sendOTPEmail = async (email, otp) => {
     });
 
     if (error) {
+      if (error.statusCode === 403 && error.name === 'validation_error') {
+        console.error(`⚠️ Resend Validation Error: ${error.message}`);
+        console.warn(`👉 Tip: In Resend 'Testing' mode, you can ONLY send emails to your own verified address. Verify a domain to send to others.`);
+        throw new Error('Email service restriction: Can only send to verified email in test mode.');
+      }
       console.error(`❌ Resend Error: Failed to send OTP email to ${email}:`, error);
       throw new Error('Failed to send verification email via Resend.');
     }
 
     console.log(`✅ OTP email sent to ${email} via Resend: ${data.id}`);
   } catch (err) {
-    console.error(`❌ Failed to send OTP email to ${email}:`, err.message);
+    // Only log if it's not the specific validation error we just logged (to avoid double logging)
+    if (!err.message.includes('Email service restriction')) {
+      console.error(`❌ Failed to send OTP email to ${email}:`, err.message);
+    }
     // Re-throw so the auth logic can handle the failure
     throw err;
   }
