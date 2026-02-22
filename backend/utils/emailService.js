@@ -1,13 +1,17 @@
 const nodemailer = require('nodemailer');
 const dns = require('dns');
+const { promisify } = require('util');
 
 // Force IPv4 globally — Render does not support IPv6 outbound connections
 dns.setDefaultResultOrder('ipv4first');
 
+const resolve4 = promisify(dns.resolve4);
+
 // Initialize Nodemailer transporter with Gmail SMTP
 let transporter;
+let transporterReady = null; // Promise for async initialization
 
-const initTransporter = () => {
+const initTransporter = async () => {
   if (transporter) return transporter;
 
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
@@ -15,25 +19,47 @@ const initTransporter = () => {
     return null;
   }
 
+  // Resolve smtp.gmail.com to IPv4 address manually
+  // This bypasses the IPv6 issue entirely on Render
+  let smtpHost = 'smtp.gmail.com';
+  try {
+    const addresses = await resolve4('smtp.gmail.com');
+    if (addresses && addresses.length > 0) {
+      smtpHost = addresses[0];
+      console.log(`✅ Resolved smtp.gmail.com to IPv4: ${smtpHost}`);
+    }
+  } catch (err) {
+    console.warn('⚠️ Could not resolve smtp.gmail.com to IPv4, using hostname:', err.message);
+  }
+
   transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
+    host: smtpHost,
     port: 465,
     secure: true,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
-    // Custom DNS lookup to force IPv4
-    dnsLookup: (hostname, options, callback) => {
-      dns.lookup(hostname, { family: 4 }, callback);
+    tls: {
+      // Required when connecting to IP — tells TLS which hostname to validate
+      servername: 'smtp.gmail.com',
     },
-    connectionTimeout: 10000, // 10s connection timeout
+    connectionTimeout: 10000,
     greetingTimeout: 10000,
     socketTimeout: 15000,
   });
 
-  console.log('✅ SMTP transporter configured (Gmail, IPv4 forced)');
+  console.log('✅ SMTP transporter configured (Gmail, IPv4)');
   return transporter;
+};
+
+// Ensure transporter is initialized (lazy, async-safe)
+const getTransporter = async () => {
+  if (transporter) return transporter;
+  if (!transporterReady) {
+    transporterReady = initTransporter();
+  }
+  return transporterReady;
 };
 
 // Helper to get sender info
@@ -45,7 +71,7 @@ const getSender = () => process.env.EMAIL_USER || 'noreply@teachingplatform.com'
  * @param {string} email - User's email address
  */
 const sendWelcomeEmail = async (name, email) => {
-  const mail = initTransporter();
+  const mail = await getTransporter();
   if (!mail) {
     console.error("❌ Cannot send welcome email: email credentials are missing.");
     return;
@@ -124,7 +150,7 @@ const sendWelcomeEmail = async (name, email) => {
  * @param {string} otp - 6-digit verification code
  */
 const sendOTPEmail = async (email, otp) => {
-  const mail = initTransporter();
+  const mail = await getTransporter();
   if (!mail) {
     throw new Error('Email service not configured (missing credentials).');
   }
@@ -184,7 +210,7 @@ const sendOTPEmail = async (email, otp) => {
  * @param {object} quoteData - { quote, message, advice }
  */
 const sendDailyQuoteEmail = async (name, email, quoteData) => {
-  const mail = initTransporter();
+  const mail = await getTransporter();
   if (!mail) {
     console.error("❌ Cannot send daily quote email: email credentials are missing.");
     return;
