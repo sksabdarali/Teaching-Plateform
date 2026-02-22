@@ -1,4 +1,8 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
+
+// Force IPv4 globally — Render does not support IPv6 outbound connections
+dns.setDefaultResultOrder('ipv4first');
 
 // Initialize Nodemailer transporter with Gmail SMTP
 let transporter;
@@ -19,21 +23,16 @@ const initTransporter = () => {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
-    // Force IPv4 — Render does not support IPv6 outbound
-    tls: {
-      family: 4,
+    // Custom DNS lookup to force IPv4
+    dnsLookup: (hostname, options, callback) => {
+      dns.lookup(hostname, { family: 4 }, callback);
     },
+    connectionTimeout: 10000, // 10s connection timeout
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
 
-  // Verify connection
-  transporter.verify((error) => {
-    if (error) {
-      console.error('❌ SMTP connection failed:', error.message);
-    } else {
-      console.log('✅ SMTP server is ready to send emails');
-    }
-  });
-
+  console.log('✅ SMTP transporter configured (Gmail, IPv4 forced)');
   return transporter;
 };
 
