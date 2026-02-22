@@ -12,10 +12,16 @@ const initTransporter = () => {
   }
 
   transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
+    },
+    // Force IPv4 — Render does not support IPv6 outbound
+    tls: {
+      family: 4,
     },
   });
 
