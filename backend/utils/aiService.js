@@ -447,10 +447,58 @@ const generateExplanation = async (subject, topic, concept) => {
   }
 };
 
+// Generate motivational content for a user using AI
+const generateMotivationalContent = async (user) => {
+  const subjects = user.subjects && user.subjects.length > 0
+    ? user.subjects.join(', ')
+    : 'general studies';
+  const streak = user.streak ? user.streak.current : 0;
+  const points = user.points || 0;
+
+  const prompt = `
+You are a motivational coach for a student on a learning platform.
+
+Student info:
+- Name: ${user.name || 'Student'}
+- Subjects: ${subjects}
+- Current study streak: ${streak} days
+- Points earned: ${points}
+
+Generate a short, personalized motivational message. Respond with ONLY valid JSON, no markdown, no explanation:
+{
+  "quote": "An inspiring quote (1-2 sentences)",
+  "message": "A personalized motivational message for the student (2-3 sentences)",
+  "advice": "A practical study tip or advice (1-2 sentences)",
+  "encouragement": "An encouraging closing statement (1 sentence)"
+}
+`;
+
+  try {
+    const response = await generateContentWithFallback(prompt);
+    const parsed = extractJsonFromResponse(response);
+    return {
+      quote: parsed.quote || "Every expert was once a beginner.",
+      message: parsed.message || "Keep pushing forward, you're doing great!",
+      advice: parsed.advice || "Try studying in focused 25-minute sessions with short breaks.",
+      encouragement: parsed.encouragement || "You've got this!"
+    };
+  } catch (error) {
+    console.error('Error generating motivational content:', error.message);
+    // Fallback content
+    return {
+      quote: "The secret of getting ahead is getting started. – Mark Twain",
+      message: `Hey ${user.name || 'there'}! Every day you study brings you closer to your goals. Keep up the momentum!`,
+      advice: "Try the Pomodoro technique: study for 25 minutes, then take a 5-minute break.",
+      encouragement: "You're making progress every single day — keep going! 💪"
+    };
+  }
+};
+
 module.exports = {
   generateContent,
   generateContentWithFallback,
   extractJsonFromResponse,
   generatePersonalizedTimetable,
-  generateExplanation
+  generateExplanation,
+  generateMotivationalContent
 };

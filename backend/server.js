@@ -69,7 +69,12 @@ const connectDB = async () => {
   }
 };
 
-connectDB();
+const { initCronJobs } = require('./utils/cronJobs');
+
+connectDB().then(() => {
+  // Initialize cron jobs after DB is connected
+  initCronJobs();
+});
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -87,6 +92,17 @@ app.use('/api/doubts', require('./routes/doubts'));
 // Health check endpoint
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Teaching Platform API is running' });
+});
+
+// Test endpoint: trigger daily quote emails manually (remove in production)
+const { sendDailyQuotesToAllUsers } = require('./utils/cronJobs');
+app.get('/api/test/send-daily-quotes', async (req, res) => {
+  try {
+    await sendDailyQuotesToAllUsers();
+    res.json({ status: 'ok', message: 'Daily quote emails triggered successfully' });
+  } catch (err) {
+    res.status(500).json({ status: 'error', message: err.message });
+  }
 });
 
 const PORT = process.env.PORT || 5000;

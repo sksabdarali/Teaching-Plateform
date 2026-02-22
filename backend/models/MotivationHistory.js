@@ -8,13 +8,15 @@ const motivationHistorySchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['quote', 'achievement', 'streak', 'reminder', 'encouragement'],
+    enum: ['quote', 'achievement', 'streak', 'reminder', 'encouragement', 'daily_motivation', 'notification', 'custom'],
     required: true
   },
   content: {
     quote: String,
     message: String,
-    achievement: String
+    achievement: String,
+    advice: String,
+    encouragement: String
   },
   date: {
     type: Date,
