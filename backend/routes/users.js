@@ -1,4 +1,5 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
@@ -57,6 +58,42 @@ router.put('/profile', auth, async (req, res) => {
     ).select('-password');
 
     res.json(user);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   PUT api/users/password
+// @desc    Change user password
+// @access  Private
+router.put('/password', auth, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    // Get user with password
+    const user = await User.findById(req.user.id);
+
+    // If user has a password, verify current password
+    if (user.password) {
+      if (!currentPassword) {
+        return res.status(400).json({ message: 'Please provide your current password' });
+      }
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Invalid current password' });
+      }
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+    }
+
+    // Set new password (the pre('save') hook in User model will hash it automatically)
+    user.password = newPassword;
+    await user.save();
+
+    res.json({ message: 'Password updated successfully' });
   } catch (error) {
     console.error(error.message);
     res.status(500).send('Server error');

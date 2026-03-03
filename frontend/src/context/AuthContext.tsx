@@ -12,6 +12,7 @@ interface User {
   board: string;
   subjects: string[];
   role?: string;
+  authMethod?: string;
   weakSubjects?: string[];
   strongSubjects?: string[];
   studyPreferences?: {

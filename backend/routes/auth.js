@@ -51,6 +51,7 @@ router.post('/register', async (req, res) => {
         board: user.board,
         subjects: user.subjects,
         role: user.role,
+        authMethod: user.authMethod,
         profileComplete: user.profileComplete
       }
     });
@@ -107,6 +108,7 @@ router.post('/login', async (req, res) => {
         board: user.board,
         subjects: user.subjects,
         role: user.role,
+        authMethod: user.authMethod,
         profileComplete: user.profileComplete
       }
     });
@@ -151,6 +153,7 @@ router.post('/google', async (req, res) => {
           board: user.board,
           subjects: user.subjects,
           role: user.role,
+          authMethod: user.authMethod,
           profileComplete: user.profileComplete
         }
       });
@@ -191,6 +194,7 @@ router.post('/google', async (req, res) => {
           board: user.board,
           subjects: user.subjects,
           role: user.role,
+          authMethod: user.authMethod,
           profileComplete: user.profileComplete
         }
       });
