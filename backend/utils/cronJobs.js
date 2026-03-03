@@ -8,6 +8,10 @@ const { sendDailyQuoteEmail } = require('./emailService');
  * Can be called directly for testing or by the cron scheduler.
  */
 const sendDailyQuotesToAllUsers = async () => {
+    if (process.env.EMAIL_ENABLED !== 'true') {
+        console.log('📧 [HALTED] Daily quote emails skipped — EMAIL_ENABLED is false.');
+        return;
+    }
     console.log('📧 Starting daily motivational quote emails...');
 
     try {

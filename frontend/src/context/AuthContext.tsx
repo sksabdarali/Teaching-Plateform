@@ -11,6 +11,7 @@ interface User {
   grade: string;
   board: string;
   subjects: string[];
+  role?: string;
   weakSubjects?: string[];
   strongSubjects?: string[];
   studyPreferences?: {
@@ -30,8 +31,6 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   register: (name: string, email: string, password: string, grade: string, board: string, subjects: string[]) => Promise<void>;
-  sendOtp: (email: string, name: string, password: string, grade: string, board: string, subjects: string[]) => Promise<void>;
-  verifyOtp: (email: string, otp: string) => Promise<void>;
   googleLogin: (tokenId: string) => Promise<void>;
   loading: boolean;
 }
@@ -87,39 +86,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Step 1: Send OTP to email with registration data
-  const sendOtp = async (
-    email: string,
-    name: string,
-    password: string,
-    grade: string,
-    board: string,
-    subjects: string[]
-  ) => {
-    try {
-      await axios.post('/api/auth/send-otp', {
-        email, name, password, grade, board, subjects
-      });
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Failed to send verification code');
-    }
-  };
-
-  // Step 2: Verify OTP and create account
-  const verifyOtp = async (email: string, otp: string) => {
-    try {
-      const response = await axios.post('/api/auth/verify-otp', { email, otp });
-      const { token, user } = response.data;
-
-      localStorage.setItem('token', token);
-      setToken(token);
-      setUser(user);
-    } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Verification failed');
-    }
-  };
-
-  // Legacy register (backward compat)
   const register = async (
     name: string,
     email: string,
@@ -168,7 +134,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, register, sendOtp, verifyOtp, googleLogin, loading }}>
+    <AuthContext.Provider value={{ user, token, login, logout, register, googleLogin, loading }}>
       {children}
     </AuthContext.Provider>
   );

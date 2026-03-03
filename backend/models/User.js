@@ -84,6 +84,10 @@ const userSchema = new mongoose.Schema({
   emailOtpExpiry: {
     type: Date
   },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
   quizScores: [{
     quizId: {
       type: mongoose.Schema.Types.ObjectId,

@@ -6,9 +6,9 @@ const Navbar: React.FC = () => {
   const { user, token, logout } = useAuth();
   const location = useLocation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  
+
   const isLoggedIn = !!token;
-  
+
   const handleLogout = () => {
     logout();
     setDropdownOpen(false);
@@ -26,91 +26,100 @@ const Navbar: React.FC = () => {
     <nav className="bg-blue-600 text-white p-4 shadow-md sticky top-0 z-50">
       <div className="container mx-auto flex justify-between items-center">
         <Link to="/" className="text-xl font-bold">AI Teaching Platform</Link>
-        
+
         <div className="flex items-center space-x-4">
           {isLoggedIn ? (
             <>
-              <Link 
-                to="/dashboard" 
+              <Link
+                to="/dashboard"
                 className={`hidden md:block px-3 py-2 rounded-md text-sm font-medium ${location.pathname === '/dashboard' ? 'bg-blue-700 text-white' : 'text-blue-100 hover:bg-blue-500 hover:bg-opacity-75'}`}
               >
                 Dashboard
               </Link>
-              
+
               {/* Profile dropdown with navigation items */}
               <div className="relative">
-                <button 
+                <button
                   className="flex items-center space-x-1 bg-white text-blue-600 px-4 py-2 rounded hover:bg-gray-100"
                   onClick={toggleDropdown}
                 >
                   <span>{user?.name || 'User'}</span>
-                  <svg 
-                    className={`w-4 h-4 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24" 
+                  <svg
+                    className={`w-4 h-4 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                     xmlns="http://www.w3.org/2000/svg"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
                   </svg>
                 </button>
-                
+
                 {dropdownOpen && (
-                  <div 
+                  <div
                     className="absolute right-0 mt-2 w-64 bg-white text-gray-800 rounded-md shadow-lg py-2 z-50 max-h-96 overflow-y-auto"
                     style={{ maxHeight: 'calc(100vh - 100px)' }} /* Adjust based on navbar height */
                   >
-                    <Link 
-                      to="/dashboard" 
+                    <Link
+                      to="/dashboard"
                       className={`block px-4 py-2 hover:bg-gray-100 ${location.pathname === '/dashboard' ? 'bg-blue-100 font-medium' : ''}`}
                       onClick={closeDropdown}
                     >
                       Dashboard
                     </Link>
-                    <Link 
-                      to="/syllabus" 
+                    <Link
+                      to="/syllabus"
                       className={`block px-4 py-2 hover:bg-gray-100 ${location.pathname === '/syllabus' ? 'bg-blue-100 font-medium' : ''}`}
                       onClick={closeDropdown}
                     >
                       Syllabus
                     </Link>
-                    <Link 
-                      to="/study-materials" 
+                    <Link
+                      to="/study-materials"
                       className={`block px-4 py-2 hover:bg-gray-100 ${location.pathname === '/study-materials' ? 'bg-blue-100 font-medium' : ''}`}
                       onClick={closeDropdown}
                     >
                       Study Materials
                     </Link>
-                    <Link 
-                      to="/quiz" 
+                    <Link
+                      to="/quiz"
                       className={`block px-4 py-2 hover:bg-gray-100 ${location.pathname === '/quiz' ? 'bg-blue-100 font-medium' : ''}`}
                       onClick={closeDropdown}
                     >
                       Quizzes
                     </Link>
-                    <Link 
-                      to="/progress" 
+                    <Link
+                      to="/progress"
                       className={`block px-4 py-2 hover:bg-gray-100 ${location.pathname === '/progress' ? 'bg-blue-100 font-medium' : ''}`}
                       onClick={closeDropdown}
                     >
                       Progress
                     </Link>
-                    <Link 
-                      to="/timetable" 
+                    <Link
+                      to="/timetable"
                       className={`block px-4 py-2 hover:bg-gray-100 ${location.pathname === '/timetable' ? 'bg-blue-100 font-medium' : ''}`}
                       onClick={closeDropdown}
                     >
                       Timetable
                     </Link>
-                    <Link 
-                      to="/profile" 
+                    <Link
+                      to="/profile"
                       className={`block px-4 py-2 hover:bg-gray-100 ${location.pathname === '/profile' ? 'bg-blue-100 font-medium' : ''}`}
                       onClick={closeDropdown}
                     >
                       Profile Settings
                     </Link>
+                    {user?.role === 'admin' && (
+                      <Link
+                        to="/admin"
+                        className={`block px-4 py-2 hover:bg-gray-100 text-purple-700 font-medium ${location.pathname === '/admin' ? 'bg-purple-100' : ''}`}
+                        onClick={closeDropdown}
+                      >
+                        🛡️ Admin Panel
+                      </Link>
+                    )}
                     <hr className="my-2" />
-                    <button 
+                    <button
                       onClick={handleLogout}
                       className="block w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 font-medium"
                     >

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import GoogleSignInButton from '../components/GoogleSignInButton';
@@ -14,23 +14,8 @@ const Register: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // OTP state
-  const [step, setStep] = useState<'form' | 'otp'>('form');
-  const [otp, setOtp] = useState(['', '', '', '', '', '']);
-  const [otpSending, setOtpSending] = useState(false);
-  const [resendCooldown, setResendCooldown] = useState(0);
-  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
-
-  const { sendOtp, verifyOtp, googleLogin } = useAuth();
+  const { register, googleLogin } = useAuth();
   const navigate = useNavigate();
-
-  // Resend cooldown timer
-  useEffect(() => {
-    if (resendCooldown > 0) {
-      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [resendCooldown]);
 
   const handleGoogleSuccess = async (tokenId: string) => {
     try {
@@ -45,7 +30,7 @@ const Register: React.FC = () => {
     setError(error);
   };
 
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -54,86 +39,12 @@ const Register: React.FC = () => {
       return;
     }
 
-    setOtpSending(true);
-    try {
-      await sendOtp(email, name, password, grade, board, subjects);
-      setStep('otp');
-      setResendCooldown(60);
-      setOtp(['', '', '', '', '', '']);
-      // Focus first OTP input after render
-      setTimeout(() => otpRefs.current[0]?.focus(), 100);
-    } catch (err: any) {
-      setError(err.message || 'Failed to send verification code');
-    } finally {
-      setOtpSending(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    if (resendCooldown > 0) return;
-    setError('');
-    setOtpSending(true);
-    try {
-      await sendOtp(email, name, password, grade, board, subjects);
-      setResendCooldown(60);
-      setOtp(['', '', '', '', '', '']);
-      otpRefs.current[0]?.focus();
-    } catch (err: any) {
-      setError(err.message || 'Failed to resend code');
-    } finally {
-      setOtpSending(false);
-    }
-  };
-
-  const handleOtpChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return; // only digits
-
-    const newOtp = [...otp];
-    newOtp[index] = value.slice(-1); // take last char
-    setOtp(newOtp);
-
-    // Auto-focus next input
-    if (value && index < 5) {
-      otpRefs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      otpRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleOtpPaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const paste = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (paste.length > 0) {
-      const newOtp = [...otp];
-      for (let i = 0; i < paste.length; i++) {
-        newOtp[i] = paste[i];
-      }
-      setOtp(newOtp);
-      const focusIdx = Math.min(paste.length, 5);
-      otpRefs.current[focusIdx]?.focus();
-    }
-  };
-
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    const otpString = otp.join('');
-    if (otpString.length !== 6) {
-      setError('Please enter the complete 6-digit code');
-      return;
-    }
-
     setLoading(true);
     try {
-      await verifyOtp(email, otpString);
+      await register(name, email, password, grade, board, subjects);
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Verification failed');
+      setError(err.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
@@ -152,84 +63,6 @@ const Register: React.FC = () => {
     setSubjects(newSubjects);
   };
 
-  // OTP Verification Step
-  if (step === 'otp') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div className="text-center">
-            <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h2 className="text-3xl font-extrabold text-gray-900">Verify your email</h2>
-            <p className="mt-2 text-sm text-gray-600">
-              We sent a 6-digit code to <strong>{email}</strong>
-            </p>
-          </div>
-
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-              <span className="block sm:inline">{error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleVerifyOtp} className="mt-8 space-y-6">
-            <div className="flex justify-center gap-3" onPaste={handleOtpPaste}>
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  ref={el => { otpRefs.current[index] = el; }}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleOtpChange(index, e.target.value)}
-                  onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                  className="w-12 h-14 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  autoComplete="off"
-                />
-              ))}
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || otp.join('').length !== 6}
-              className="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              {loading ? 'Verifying...' : 'Verify & Create Account'}
-            </button>
-          </form>
-
-          <div className="text-center space-y-3">
-            <p className="text-sm text-gray-600">
-              Didn't receive the code?{' '}
-              {resendCooldown > 0 ? (
-                <span className="text-gray-400">Resend in {resendCooldown}s</span>
-              ) : (
-                <button
-                  onClick={handleResendOtp}
-                  disabled={otpSending}
-                  className="font-medium text-blue-600 hover:text-blue-500"
-                >
-                  {otpSending ? 'Sending...' : 'Resend code'}
-                </button>
-              )}
-            </p>
-            <button
-              onClick={() => { setStep('form'); setError(''); }}
-              className="text-sm text-gray-500 hover:text-gray-700"
-            >
-              ← Back to registration
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Registration Form Step
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
@@ -245,7 +78,7 @@ const Register: React.FC = () => {
           </div>
         )}
 
-        <form className="mt-8 space-y-6" onSubmit={handleSendOtp}>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="name" className="sr-only">Full Name</label>
@@ -362,10 +195,10 @@ const Register: React.FC = () => {
           <div>
             <button
               type="submit"
-              disabled={otpSending}
+              disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              {otpSending ? 'Sending verification code...' : 'Send Verification Code'}
+              {loading ? 'Creating account...' : 'Create Account'}
             </button>
           </div>
         </form>

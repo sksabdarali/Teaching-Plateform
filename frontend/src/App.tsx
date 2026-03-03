@@ -18,6 +18,7 @@ import Timetable from './pages/Timetable';
 import StudyMaterials from './pages/StudyMaterials';
 import GoogleButtonDemo from './pages/GoogleButtonDemo';
 import LoadingDemo from './pages/LoadingDemo';
+import AdminDashboard from './pages/AdminDashboard';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -41,6 +42,7 @@ function App() {
                 <Route path="/progress" element={<PrivateRoute><ProgressPage /></PrivateRoute>} />
                 <Route path="/timetable" element={<PrivateRoute><Timetable /></PrivateRoute>} />
                 <Route path="/study-materials" element={<PrivateRoute><StudyMaterials /></PrivateRoute>} />
+                <Route path="/admin" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
                 <Route path="/google-demo" element={<GoogleButtonDemo />} />
                 <Route path="/loading-demo" element={<PrivateRoute><LoadingDemo /></PrivateRoute>} />
               </Routes>

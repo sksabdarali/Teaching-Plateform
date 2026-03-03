@@ -2,139 +2,15 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const OTP = require('../models/OTP');
 const generateToken = require('../utils/generateToken');
 const { OAuth2Client } = require('google-auth-library');
 const auth = require('../middleware/auth');
-const { sendWelcomeEmail, sendOTPEmail } = require('../utils/emailService');
 
 const router = express.Router();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// @route   POST api/auth/send-otp
-// @desc    Send OTP to email for verification
-// @access  Public
-router.post('/send-otp', async (req, res) => {
-  try {
-    const { email, name, password, grade, board, subjects } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ message: 'Email is required' });
-    }
-
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'User with this email already exists' });
-    }
-
-    // Generate 6-digit OTP
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
-
-    // Save/Update OTP and registration data in MongoDB
-    await OTP.findOneAndUpdate(
-      { email: email.toLowerCase() },
-      {
-        otp,
-        registrationData: {
-          name,
-          password,
-          grade,
-          board,
-          subjects: subjects || []
-        },
-        createdAt: new Date()
-      },
-      { upsert: true, new: true }
-    );
-
-    // Send OTP email
-    await sendOTPEmail(email, otp);
-
-    console.log(`📧 OTP generated for ${email}: ${otp}`);
-
-    res.json({ message: 'Verification code sent to your email' });
-  } catch (error) {
-    console.error('Error sending OTP:', error.message);
-    res.status(500).json({ message: error.message || 'Failed to send verification code' });
-  }
-});
-
-// @route   POST api/auth/verify-otp
-// @desc    Verify OTP and create user account
-// @access  Public
-router.post('/verify-otp', async (req, res) => {
-  try {
-    const { email, otp } = req.body;
-
-    if (!email || !otp) {
-      return res.status(400).json({ message: 'Email and OTP are required' });
-    }
-
-    const otpDoc = await OTP.findOne({ email: email.toLowerCase() });
-
-    if (!otpDoc) {
-      return res.status(400).json({ message: 'No verification pending for this email or code expired. Please request a new code.' });
-    }
-
-    // Check OTP
-    if (otpDoc.otp !== otp.trim()) {
-      return res.status(400).json({ message: 'Invalid verification code. Please try again.' });
-    }
-
-    // OTP verified — create the user account
-    const { name, password, grade, board, subjects } = otpDoc.registrationData;
-
-    // Double-check user doesn't already exist
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      await OTP.deleteOne({ email: email.toLowerCase() });
-      return res.status(400).json({ message: 'User already exists' });
-    }
-
-    const user = new User({
-      name,
-      email: email.toLowerCase(),
-      password,
-      grade,
-      board,
-      subjects,
-      isEmailVerified: true
-    });
-
-    await user.save();
-
-    // Clean up OTP data
-    await OTP.deleteOne({ email: email.toLowerCase() });
-
-    // Send welcome email (non-blocking) but log failures
-    sendWelcomeEmail(name, email).catch((err) => {
-      console.error(`❌ Non-blocking error: Failed to send welcome email to ${email}:`, err.message);
-    });
-
-    const token = generateToken(user._id);
-
-    res.status(201).json({
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        grade: user.grade,
-        board: user.board,
-        subjects: user.subjects,
-        isEmailVerified: true,
-        profileComplete: user.profileComplete
-      }
-    });
-  } catch (error) {
-    console.error('Error verifying OTP:', error.message);
-    res.status(500).json({ message: 'Server error during verification' });
-  }
-});
-
 // @route   POST api/auth/register
-// @desc    Register user (legacy — kept for backward compatibility but now recommends OTP flow)
+// @desc    Register user
 // @access  Public
 router.post('/register', async (req, res) => {
   try {
@@ -163,11 +39,6 @@ router.post('/register', async (req, res) => {
 
     await user.save();
 
-    // Send welcome email (non-blocking) but log failures
-    sendWelcomeEmail(name, email).catch((err) => {
-      console.error(`❌ Non-blocking error: Failed to send welcome email to ${email}:`, err.message);
-    });
-
     const token = generateToken(user._id);
 
     res.status(201).json({
@@ -179,6 +50,7 @@ router.post('/register', async (req, res) => {
         grade: user.grade,
         board: user.board,
         subjects: user.subjects,
+        role: user.role,
         profileComplete: user.profileComplete
       }
     });
@@ -206,6 +78,12 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
 
+    // Check if user is active
+    if (user.isActive === false) {
+      console.timeEnd(`Login attempt for ${email}`);
+      return res.status(403).json({ message: 'Your account has been deactivated. Please contact an administrator.' });
+    }
+
     // Check password
     console.time('Password check');
     const isMatch = await bcrypt.compare(password, user.password);
@@ -228,6 +106,7 @@ router.post('/login', async (req, res) => {
         grade: user.grade,
         board: user.board,
         subjects: user.subjects,
+        role: user.role,
         profileComplete: user.profileComplete
       }
     });
@@ -254,6 +133,11 @@ router.post('/google', async (req, res) => {
     let user = await User.findOne({ email });
 
     if (user) {
+      // Check if user is active
+      if (user.isActive === false) {
+        return res.status(403).json({ message: 'Your account has been deactivated. Please contact an administrator.' });
+      }
+
       // User already exists, just return token
       const authToken = generateToken(user._id);
 
@@ -266,6 +150,7 @@ router.post('/google', async (req, res) => {
           grade: user.grade,
           board: user.board,
           subjects: user.subjects,
+          role: user.role,
           profileComplete: user.profileComplete
         }
       });
@@ -289,11 +174,6 @@ router.post('/google', async (req, res) => {
         if (!user.board) user.board = 'Not Specified';
 
         await user.save();
-
-        // Send welcome email (non-blocking) but log failures
-        sendWelcomeEmail(name, email).catch((err) => {
-          console.error(`❌ Non-blocking error: Failed to send welcome email to ${email}:`, err.message);
-        });
       } catch (saveError) {
         console.error('Error saving user:', saveError);
         return res.status(500).json({ message: 'Error creating user account', error: saveError.message });
@@ -310,6 +190,7 @@ router.post('/google', async (req, res) => {
           grade: user.grade,
           board: user.board,
           subjects: user.subjects,
+          role: user.role,
           profileComplete: user.profileComplete
         }
       });

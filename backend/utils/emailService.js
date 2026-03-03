@@ -1,69 +1,27 @@
 const nodemailer = require('nodemailer');
-const dns = require('dns');
-const { promisify } = require('util');
 
-// Force IPv4 globally — Render does not support IPv6 outbound connections
-dns.setDefaultResultOrder('ipv4first');
+// Email enabled flag — set EMAIL_ENABLED=true in .env to activate
+const EMAIL_ENABLED = process.env.EMAIL_ENABLED === 'true';
 
-const resolve4 = promisify(dns.resolve4);
-
-// Initialize Nodemailer transporter with Gmail SMTP
+// Initialize Nodemailer transporter (Gmail SMTP)
 let transporter;
-let transporterReady = null; // Promise for async initialization
-
-const initTransporter = async () => {
-  if (transporter) return transporter;
-
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.warn("⚠️ EMAIL_USER or EMAIL_PASS not defined. Email sending will be disabled.");
-    return null;
-  }
-
-  // Resolve smtp.gmail.com to IPv4 address manually
-  // This bypasses the IPv6 issue entirely on Render
-  let smtpHost = 'smtp.gmail.com';
-  try {
-    const addresses = await resolve4('smtp.gmail.com');
-    if (addresses && addresses.length > 0) {
-      smtpHost = addresses[0];
-      console.log(`✅ Resolved smtp.gmail.com to IPv4: ${smtpHost}`);
-    }
-  } catch (err) {
-    console.warn('⚠️ Could not resolve smtp.gmail.com to IPv4, using hostname:', err.message);
-  }
-
+if (EMAIL_ENABLED) {
   transporter = nodemailer.createTransport({
-    host: smtpHost,
-    port: 465,
-    secure: true,
+    host: process.env.SMTP_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: false, // true for 465, false for other ports
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
     },
-    tls: {
-      // Required when connecting to IP — tells TLS which hostname to validate
-      servername: 'smtp.gmail.com',
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
   });
+  console.log('✅ Nodemailer email service initialized (SMTP)');
+} else {
+  console.warn('⚠️ Email sending is DISABLED (EMAIL_ENABLED=false). Set EMAIL_ENABLED=true in .env to activate.');
+}
 
-  console.log('✅ SMTP transporter configured (Gmail, IPv4)');
-  return transporter;
-};
-
-// Ensure transporter is initialized (lazy, async-safe)
-const getTransporter = async () => {
-  if (transporter) return transporter;
-  if (!transporterReady) {
-    transporterReady = initTransporter();
-  }
-  return transporterReady;
-};
-
-// Helper to get sender info
-const getSender = () => process.env.EMAIL_USER || 'noreply@teachingplatform.com';
+// Helper to get the sender email
+const getSenderEmail = () => process.env.SMTP_USER || 'noreply@teachingplatform.com';
 
 /**
  * Send welcome email to new user
@@ -71,15 +29,14 @@ const getSender = () => process.env.EMAIL_USER || 'noreply@teachingplatform.com'
  * @param {string} email - User's email address
  */
 const sendWelcomeEmail = async (name, email) => {
-  const mail = await getTransporter();
-  if (!mail) {
-    console.error("❌ Cannot send welcome email: email credentials are missing.");
+  if (!EMAIL_ENABLED || !transporter) {
+    console.log(`📧 [HALTED] Welcome email to ${email} skipped — email sending is disabled.`);
     return;
   }
 
   try {
-    const info = await mail.sendMail({
-      from: `"Teaching Platform" <${getSender()}>`,
+    const info = await transporter.sendMail({
+      from: `"Teaching Platform" <${getSenderEmail()}>`,
       to: email,
       subject: '🎉 Welcome to Teaching Platform!',
       html: `
@@ -145,82 +102,22 @@ const sendWelcomeEmail = async (name, email) => {
 };
 
 /**
- * Send OTP verification email
- * @param {string} email - User's email address
- * @param {string} otp - 6-digit verification code
- */
-const sendOTPEmail = async (email, otp) => {
-  const mail = await getTransporter();
-  if (!mail) {
-    throw new Error('Email service not configured (missing credentials).');
-  }
-
-  try {
-    const info = await mail.sendMail({
-      from: `"Teaching Platform" <${getSender()}>`,
-      to: email,
-      subject: '🔐 Your Verification Code - Teaching Platform',
-      html: `
-        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
-          <!-- Header -->
-          <div style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); padding: 40px 30px; text-align: center;">
-            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;">Email Verification</h1>
-            <p style="color: rgba(255,255,255,0.9); margin-top: 8px; font-size: 16px;">Verify your email to get started 🔐</p>
-          </div>
-
-          <!-- Body -->
-          <div style="padding: 30px;">
-            <p style="color: #374151; font-size: 16px; line-height: 1.6;">
-              Use the following code to verify your email address:
-            </p>
-
-            <div style="text-align: center; margin: 30px 0;">
-              <div style="display: inline-block; background: linear-gradient(135deg, #eff6ff, #e0e7ff); border: 2px solid #3b82f6; border-radius: 12px; padding: 20px 40px;">
-                <span style="font-size: 36px; font-weight: 700; color: #1e40af; letter-spacing: 8px; font-family: monospace;">${otp}</span>
-              </div>
-            </div>
-
-            <p style="color: #6b7280; font-size: 14px; line-height: 1.6; text-align: center;">
-              This code expires in <strong>10 minutes</strong>.<br/>
-              If you did not request this code, please ignore this email.
-            </p>
-          </div>
-
-          <!-- Footer -->
-          <div style="background: #f9fafb; padding: 20px 30px; text-align: center; border-top: 1px solid #e5e7eb;">
-            <p style="color: #9ca3af; font-size: 12px; margin: 0;">
-              Teaching Platform — Email Verification
-            </p>
-          </div>
-        </div>
-      `,
-    });
-
-    console.log(`✅ OTP email sent to ${email}: ${info.messageId}`);
-  } catch (err) {
-    console.error(`❌ Failed to send OTP email to ${email}:`, err.message);
-    throw err;
-  }
-};
-
-/**
  * Send daily motivational quote email
  * @param {string} name - User's name
  * @param {string} email - User's email address
  * @param {object} quoteData - { quote, message, advice }
  */
 const sendDailyQuoteEmail = async (name, email, quoteData) => {
-  const mail = await getTransporter();
-  if (!mail) {
-    console.error("❌ Cannot send daily quote email: email credentials are missing.");
+  if (!EMAIL_ENABLED || !transporter) {
+    console.log(`📧 [HALTED] Daily quote email to ${email} skipped — email sending is disabled.`);
     return;
   }
 
   const { quote, message, advice } = quoteData;
 
   try {
-    const info = await mail.sendMail({
-      from: `"Teaching Platform" <${getSender()}>`,
+    const info = await transporter.sendMail({
+      from: `"Teaching Platform" <${getSenderEmail()}>`,
       to: email,
       subject: '✨ Your Daily Motivation - Teaching Platform',
       html: `
@@ -285,4 +182,4 @@ const sendDailyQuoteEmail = async (name, email, quoteData) => {
   }
 };
 
-module.exports = { sendWelcomeEmail, sendOTPEmail, sendDailyQuoteEmail };
+module.exports = { sendWelcomeEmail, sendDailyQuoteEmail };

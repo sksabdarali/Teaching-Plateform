@@ -23,15 +23,15 @@ router.get('/profile', auth, async (req, res) => {
 // @access  Private
 router.put('/profile', auth, async (req, res) => {
   try {
-    const { 
-      name, 
-      grade, 
-      board, 
-      subjects, 
-      weakSubjects, 
-      strongSubjects, 
+    const {
+      name,
+      grade,
+      board,
+      subjects,
+      weakSubjects,
+      strongSubjects,
       studyPreferences,
-      examSchedule 
+      examSchedule
     } = req.body;
 
     const profileFields = {};
@@ -68,8 +68,63 @@ router.put('/profile', auth, async (req, res) => {
 // @access  Private/Admin
 router.get('/', [auth, admin], async (req, res) => {
   try {
-    const users = await User.find({}).select('-password');
+    const users = await User.find({}).select('-password').sort({ createdAt: -1 });
     res.json(users);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   PATCH api/users/:id/status
+// @desc    Toggle user active status (admin only)
+// @access  Private/Admin
+router.patch('/:id/status', [auth, admin], async (req, res) => {
+  try {
+    const { isActive } = req.body;
+
+    // Prevent admin from deactivating themselves
+    if (req.params.id === req.user.id) {
+      return res.status(400).json({ message: 'You cannot deactivate your own account' });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { $set: { isActive } },
+      { new: true }
+    ).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    console.log(`👤 Admin ${req.user.email} ${isActive ? 'activated' : 'deactivated'} user ${user.email}`);
+    res.json(user);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server error');
+  }
+});
+
+// @route   DELETE api/users/:id
+// @desc    Delete a user (admin only)
+// @access  Private/Admin
+router.delete('/:id', [auth, admin], async (req, res) => {
+  try {
+    // Prevent admin from deleting themselves
+    if (req.params.id === req.user.id) {
+      return res.status(400).json({ message: 'You cannot delete your own account' });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+
+    console.log(`🗑️ Admin ${req.user.email} deleted user ${user.email}`);
+    res.json({ message: 'User deleted successfully' });
   } catch (error) {
     console.error(error.message);
     res.status(500).send('Server error');
