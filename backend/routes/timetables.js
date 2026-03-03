@@ -128,7 +128,9 @@ router.delete('/:id', auth, async (req, res) => {
 router.post('/generate-ai', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-    const { subjects: customSubjects } = req.body;
+    const { subjects: customSubjects, startTime, endTime, numberOfDays } = req.body;
+
+    const days = numberOfDays && numberOfDays > 0 ? Math.min(numberOfDays, 30) : 7;
 
     // Gather subjects: prefer custom input > syllabi subjects > user.subjects > defaults
     let subjects = [];
@@ -148,10 +150,11 @@ router.post('/generate-ai', auth, async (req, res) => {
       subjects = user.subjects;
     }
 
-    const studyHours = user.studyPreferences?.dailyStudyHours || 4;
+    const studyStartTime = startTime || '09:00';
+    const studyEndTime = endTime || '18:00';
 
     // Generate personalized timetable using AI
-    const timetableData = await generatePersonalizedTimetable(subjects, studyHours);
+    const timetableData = await generatePersonalizedTimetable(subjects, studyStartTime, studyEndTime, days);
 
     const timetable = new Timetable({
       title: timetableData.title,
@@ -159,7 +162,7 @@ router.post('/generate-ai', auth, async (req, res) => {
       user: req.user.id,
       schedule: timetableData.schedule,
       startDate: new Date(),
-      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      endDate: new Date(Date.now() + days * 24 * 60 * 60 * 1000),
       generationMethod: 'ai_generated'
     });
 

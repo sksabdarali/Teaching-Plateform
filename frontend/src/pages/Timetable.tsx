@@ -35,6 +35,9 @@ const TimetablePage: React.FC = () => {
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [subjectInput, setSubjectInput] = useState('');
   const [subjectsList, setSubjectsList] = useState<string[]>([]);
+  const [startTime, setStartTime] = useState('09:00');
+  const [endTime, setEndTime] = useState('18:00');
+  const [numberOfDays, setNumberOfDays] = useState(7);
   const [selectedDate, setSelectedDate] = useState<string>('');
 
   const fetchTimetables = useCallback(async () => {
@@ -62,6 +65,9 @@ const TimetablePage: React.FC = () => {
   const openGenerateModal = () => {
     setSubjectsList([]);
     setSubjectInput('');
+    setStartTime('09:00');
+    setEndTime('18:00');
+    setNumberOfDays(7);
     setError('');
     setShowSubjectModal(true);
   };
@@ -91,7 +97,12 @@ const TimetablePage: React.FC = () => {
     setShowSubjectModal(false);
     try {
       const response = await axios.post('/api/timetables/generate-ai',
-        { subjects: subjectsList.length > 0 ? subjectsList : undefined },
+        {
+          subjects: subjectsList.length > 0 ? subjectsList : undefined,
+          startTime,
+          endTime,
+          numberOfDays
+        },
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
       setTimetables([response.data, ...timetables]);
@@ -227,6 +238,40 @@ const TimetablePage: React.FC = () => {
                 ))}
               </div>
             )}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="block text-gray-700 text-xs font-medium mb-1">Start Time</label>
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 text-xs font-medium mb-1">End Time</label>
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  required
+                />
+              </div>
+            </div>
+            <div className="mb-3">
+              <label className="block text-gray-700 text-xs font-medium mb-1">Number of Days</label>
+              <input
+                type="number"
+                min="1"
+                max="30"
+                value={numberOfDays}
+                onChange={(e) => setNumberOfDays(parseInt(e.target.value) || 7)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                required
+              />
+            </div>
             <div className="flex gap-3 justify-end mt-4">
               <button
                 onClick={() => setShowSubjectModal(false)}

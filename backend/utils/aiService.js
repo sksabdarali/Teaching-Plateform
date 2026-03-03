@@ -292,12 +292,12 @@ const generateContent = (prompt, options = {}) => {
 };
 
 // Generate personalized timetable using AI
-const generatePersonalizedTimetable = async (subjects = [], studyHoursPerDay = 4) => {
-  // Build 7-day date list starting from today
+const generatePersonalizedTimetable = async (subjects = [], startTime = '09:00', endTime = '18:00', numberOfDays = 7) => {
+  // Build date list starting from today
   const dates = [];
   const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   const today = new Date();
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < numberOfDays; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
     const yyyy = d.getFullYear();
@@ -309,10 +309,10 @@ const generatePersonalizedTimetable = async (subjects = [], studyHoursPerDay = 4
   const subjectList = subjects.length > 0 ? subjects : ['Mathematics', 'Science', 'English'];
 
   const prompt = `
-You are a study planner. Create a 7-day study timetable for a student.
+You are a study planner. Create a ${numberOfDays}-day study timetable for a student.
 
 Subjects: ${subjectList.join(', ')}
-Study hours per day: ${studyHoursPerDay} hours
+Study time window: ${startTime} to ${endTime} each day
 Dates: ${dates.map(d => `${d.date} (${d.day})`).join(', ')}
 
 IMPORTANT: Respond with ONLY valid JSON. No markdown, no explanation, no extra text.
@@ -320,12 +320,12 @@ IMPORTANT: Respond with ONLY valid JSON. No markdown, no explanation, no extra t
 The JSON must match this exact structure:
 {
   "title": "Personalized Study Timetable",
-  "description": "A 7-day study schedule",
+  "description": "A ${numberOfDays}-day study schedule",
   "schedule": [
     {
       "subject": "Mathematics",
       "topic": "Algebra Basics",
-      "startTime": "09:00",
+      "startTime": "${startTime}",
       "endTime": "10:00",
       "date": "2026-02-16",
       "duration": 60,
@@ -336,10 +336,10 @@ The JSON must match this exact structure:
 
 Rules:
 - Each schedule item must have: subject (string), topic (string — a specific topic within that subject), startTime (HH:MM 24hr), endTime (HH:MM 24hr), date (YYYY-MM-DD from the dates above), duration (minutes as number), priority (1-5 where 5 is highest).
-- Distribute subjects evenly across all 7 days.
+- ALL sessions must start at or after ${startTime} and end at or before ${endTime}.
+- Distribute subjects evenly across all ${numberOfDays} days.
 - Study sessions should be 45-90 minutes each.
-- Include study sessions from morning to evening, spread across the day.
-- Generate at least 3-4 sessions per day.
+- Generate at least 3-4 sessions per day within the time window.
 - Use realistic topics related to each subject.
 - Vary priority levels: harder/important topics get higher priority.
 - Return ONLY the JSON object, nothing else.
@@ -375,10 +375,13 @@ Rules:
 
     // Build a proper fallback timetable matching the schema
     const fallbackSchedule = [];
+
+    // Parse start/end times to create slots within the window
+    const [startH] = startTime.split(':').map(Number);
     const timeSlots = [
-      { startTime: '09:00', endTime: '10:00', duration: 60 },
-      { startTime: '10:15', endTime: '11:15', duration: 60 },
-      { startTime: '14:00', endTime: '15:00', duration: 60 },
+      { startTime: `${String(startH).padStart(2, '0')}:00`, endTime: `${String(startH + 1).padStart(2, '0')}:00`, duration: 60 },
+      { startTime: `${String(startH + 1).padStart(2, '0')}:15`, endTime: `${String(startH + 2).padStart(2, '0')}:15`, duration: 60 },
+      { startTime: `${String(startH + 3).padStart(2, '0')}:00`, endTime: `${String(startH + 4).padStart(2, '0')}:00`, duration: 60 },
     ];
 
     for (const dateInfo of dates) {
