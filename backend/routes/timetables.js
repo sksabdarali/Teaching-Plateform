@@ -114,7 +114,7 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(401).json({ message: 'User not authorized' });
     }
 
-    await Timetable.findByIdAndRemove(req.params.id);
+    await Timetable.findByIdAndDelete(req.params.id);
     res.json({ message: 'Timetable removed' });
   } catch (error) {
     console.error(error.message);

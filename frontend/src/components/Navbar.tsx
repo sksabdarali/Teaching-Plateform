@@ -103,6 +103,13 @@ const Navbar: React.FC = () => {
                       Timetable
                     </Link>
                     <Link
+                      to="/mentor"
+                      className={`block px-4 py-2 hover:bg-gray-100 text-indigo-700 font-medium ${location.pathname === '/mentor' ? 'bg-indigo-100' : ''}`}
+                      onClick={closeDropdown}
+                    >
+                      🧠 AI Mentor
+                    </Link>
+                    <Link
                       to="/profile"
                       className={`block px-4 py-2 hover:bg-gray-100 ${location.pathname === '/profile' ? 'bg-blue-100 font-medium' : ''}`}
                       onClick={closeDropdown}

@@ -32,11 +32,11 @@ const Dashboard: React.FC = () => {
   const { user, token } = useAuth();
   const { showLoading, hideLoading } = useLoading();
   const [progress, setProgress] = useState<ProgressData | null>(null);
-  
+
   // Store the functions in refs to avoid dependency issues
   const showLoadingRef = useRef(showLoading);
   const hideLoadingRef = useRef(hideLoading);
-  
+
   // Update refs when the functions change
   useEffect(() => {
     showLoadingRef.current = showLoading;
@@ -45,7 +45,7 @@ const Dashboard: React.FC = () => {
 
   const fetchProgress = useCallback(async () => {
     if (!token) return;
-    
+
     // Use the functions from refs to avoid dependency issues
     showLoadingRef.current();
     try {
@@ -81,17 +81,17 @@ const Dashboard: React.FC = () => {
           <div className="text-3xl font-bold text-blue-600">{progress?.points || 0}</div>
           <div className="text-gray-600">Points</div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-3xl font-bold text-green-600">{progress?.streak?.current || 0}</div>
           <div className="text-gray-600">Current Streak</div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-3xl font-bold text-purple-600">{progress?.totalQuizzes || 0}</div>
           <div className="text-gray-600">Quizzes Taken</div>
         </div>
-        
+
         <div className="bg-white rounded-lg shadow p-6">
           <div className="text-3xl font-bold text-yellow-600">{progress?.avgScore || 0}%</div>
           <div className="text-gray-600">Avg. Score</div>
@@ -101,30 +101,36 @@ const Dashboard: React.FC = () => {
       {/* Quick Actions */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-xl font-bold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-          <Link 
-            to="/syllabus" 
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+          <Link
+            to="/syllabus"
             className="bg-blue-100 hover:bg-blue-200 text-blue-800 font-medium py-3 px-4 rounded-lg text-center transition"
           >
             View Syllabus
           </Link>
-          <Link 
-            to="/quiz" 
+          <Link
+            to="/quiz"
             className="bg-green-100 hover:bg-green-200 text-green-800 font-medium py-3 px-4 rounded-lg text-center transition"
           >
             Take Quiz
           </Link>
-          <Link 
-            to="/timetable" 
+          <Link
+            to="/timetable"
             className="bg-purple-100 hover:bg-purple-200 text-purple-800 font-medium py-3 px-4 rounded-lg text-center transition"
           >
             View Timetable
           </Link>
-          <Link 
-            to="/progress" 
+          <Link
+            to="/progress"
             className="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 font-medium py-3 px-4 rounded-lg text-center transition"
           >
             Track Progress
+          </Link>
+          <Link
+            to="/mentor"
+            className="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 font-medium py-3 px-4 rounded-lg text-center transition"
+          >
+            🧠 Ask AI Mentor
           </Link>
         </div>
       </div>
@@ -163,7 +169,7 @@ const Dashboard: React.FC = () => {
             {user?.subjects?.map((subject: string, index: number) => (
               <div key={index} className="flex justify-between items-center">
                 <span>{subject}</span>
-                <Link 
+                <Link
                   to={`/syllabus?subject=${encodeURIComponent(subject)}`}
                   className="text-blue-600 hover:underline text-sm"
                 >

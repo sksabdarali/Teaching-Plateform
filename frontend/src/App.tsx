@@ -19,6 +19,7 @@ import StudyMaterials from './pages/StudyMaterials';
 import GoogleButtonDemo from './pages/GoogleButtonDemo';
 import LoadingDemo from './pages/LoadingDemo';
 import AdminDashboard from './pages/AdminDashboard';
+import AIMentor from './pages/AIMentor';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -41,6 +42,7 @@ function App() {
                 <Route path="/quiz/:syllabusId" element={<PrivateRoute><InteractiveQuiz /></PrivateRoute>} />
                 <Route path="/progress" element={<PrivateRoute><ProgressPage /></PrivateRoute>} />
                 <Route path="/timetable" element={<PrivateRoute><Timetable /></PrivateRoute>} />
+                <Route path="/mentor" element={<PrivateRoute><AIMentor /></PrivateRoute>} />
                 <Route path="/study-materials" element={<PrivateRoute><StudyMaterials /></PrivateRoute>} />
                 <Route path="/admin" element={<PrivateRoute><AdminDashboard /></PrivateRoute>} />
                 <Route path="/google-demo" element={<GoogleButtonDemo />} />

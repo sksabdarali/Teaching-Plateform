@@ -88,6 +88,7 @@ app.use('/api/timetables', require('./routes/timetables'));
 app.use('/api/motivation', require('./routes/motivation'));
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/doubts', require('./routes/doubts'));
+app.use('/api/mentor', require('./routes/mentor'));
 
 // Health check endpoint
 app.get('/', (req, res) => {
