@@ -1,141 +1,398 @@
-# Teaching Platform
+# 📚 EduSmart - AI-Powered Teaching Platform
 
-A comprehensive teaching platform with AI-powered features for educators and students.
+A full-stack **MERN** (MongoDB, Express.js, React.js, Node.js) web application that leverages **AI (Google Gemini API)** to deliver personalized learning experiences. The platform helps students manage their syllabus, generate AI-powered quizzes, track progress, get doubt resolution, and stay motivated throughout their learning journey.
 
-## Features
+> **Live Demo:** [https://teaching-plateform.onrender.com](https://teaching-plateform.onrender.com)
 
-- User authentication and authorization
-- Syllabus management
-- AI-powered quiz generation
-- Personalized learning content
-- Progress tracking and analytics
-- Motivational content delivery
-- Customizable timetables
-- Doubt-solving assistance
-- Achievement system with gamification
+---
 
-## Tech Stack
+## 🚀 Key Features
 
-- **Frontend**: React.js, TypeScript, Tailwind CSS
-- **Backend**: Node.js, Express.js
-- **Database**: MongoDB
-- **AI Integration**: Google Gemini API
-- **Authentication**: JWT
+### 🔐 Authentication & User Management
+- **Email/Password Registration** with OTP email verification
+- **Google OAuth 2.0** Sign-In for quick access
+- **JWT-based** session management with protected routes
+- **Admin Panel** for user management and platform oversight
+- **Profile Management** – students can update grade, board, subjects, and change password
 
-## Installation
+### 📖 Syllabus Management
+- Upload syllabus via **PDF, DOCX, or text input**
+- AI-powered **syllabus parsing** to extract topics and subtopics automatically
+- Organize syllabi by subject with topic-level tracking
+- Mark topics as completed to track learning progress
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd teaching-platform
+### 🤖 AI-Powered Quiz Generation
+- Generate **multiple-choice quizzes** from any topic using Google Gemini AI
+- Configurable **difficulty levels** and number of questions
+- **Interactive quiz interface** with real-time feedback
+- **Detailed explanations** for each answer after submission
+- Quiz history and **performance analytics**
+
+### 📊 Progress Tracking & Analytics
+- **Dashboard** with visual charts (built with Recharts) showing overall performance
+- Subject-wise **progress breakdown**
+- **Achievement system** with gamification (badges, streaks)
+- Personalized **study recommendations** based on performance data
+
+### 📅 AI-Generated Timetable
+- Generate **customized study schedules** using AI
+- Specify number of days and subjects
+- **CRUD operations** on timetables (create, view, edit, delete)
+
+### 💡 Doubt Solving & AI Mentor
+- **Ask any academic question** and receive AI-powered explanations
+- **Contextual doubt solving** that considers the student's current progress
+- **AI Mentor** feature for guided learning and concept clarification
+
+### 📧 Email Notifications
+- **OTP verification** emails for new user registration
+- **Welcome emails** for new users
+- **Daily motivational quotes** sent to all users via automated cron jobs
+
+### 🎯 Motivation System
+- **Daily motivational quotes** and study tips
+- **Motivation history** tracking
+- **Achievement notifications** to keep students engaged
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | React.js, TypeScript, Tailwind CSS |
+| **Backend** | Node.js, Express.js |
+| **Database** | MongoDB (Mongoose ODM) |
+| **AI Integration** | Google Gemini API |
+| **Authentication** | JWT, Google OAuth 2.0, bcrypt.js |
+| **Email Service** | Nodemailer (Gmail SMTP) |
+| **File Parsing** | Multer, pdf-parse, Mammoth (DOCX) |
+| **Charts** | Recharts |
+| **Task Scheduling** | node-cron |
+| **Deployment** | Render (Backend + Frontend) |
+
+---
+
+## 📁 Project Structure
+
+```
+Teaching-Platform/
+│
+├── backend/                    # Express.js REST API
+│   ├── controllers/            # Business logic
+│   │   ├── aiController.js          # AI quiz, content, timetable generation
+│   │   ├── motivationController.js  # Daily motivation & achievements
+│   │   ├── progressController.js    # Progress tracking logic
+│   │   └── topicController.js       # Topic management
+│   ├── models/                 # Mongoose schemas
+│   │   ├── User.js                  # User model (auth, profile, Google OAuth)
+│   │   ├── Syllabus.js              # Syllabus with topics & subtopics
+│   │   ├── Quiz.js                  # Quiz model
+│   │   ├── QuizResult.js            # Quiz attempt results
+│   │   ├── Timetable.js             # AI-generated timetables
+│   │   ├── MotivationHistory.js     # Daily motivation records
+│   │   └── OTP.js                   # OTP model for email verification
+│   ├── routes/                 # API route definitions
+│   │   ├── auth.js                  # Register, login, profile, Google OAuth
+│   │   ├── users.js                 # User CRUD (admin)
+│   │   ├── syllabi.js               # Syllabus CRUD
+│   │   ├── syllabusUpload.js        # File upload & AI parsing
+│   │   ├── quizzes.js               # Quiz CRUD & submission
+│   │   ├── topics.js                # Topic routes
+│   │   ├── progress.js              # Progress & recommendations
+│   │   ├── timetables.js            # Timetable CRUD & AI generation
+│   │   ├── motivation.js            # Motivation routes
+│   │   ├── ai.js                    # AI endpoint routes
+│   │   ├── doubts.js                # Doubt solving routes
+│   │   └── mentor.js                # AI Mentor routes
+│   ├── middleware/              # Express middleware
+│   │   ├── auth.js                  # JWT verification middleware
+│   │   └── admin.js                 # Admin role check middleware
+│   ├── utils/                  # Utility services
+│   │   ├── aiService.js             # Core AI service (Gemini API integration)
+│   │   ├── geminiService.js         # Gemini model initialization & fallback
+│   │   ├── emailService.js          # Nodemailer email service
+│   │   ├── cronJobs.js              # Scheduled tasks (daily emails)
+│   │   ├── fileParser.js            # PDF/DOCX file parsing
+│   │   ├── syllabusParser.js        # AI-powered syllabus extraction
+│   │   └── generateToken.js         # JWT token generator
+│   ├── server.js               # Express app entry point
+│   └── package.json
+│
+├── frontend/                   # React.js SPA
+│   ├── public/                 # Static assets
+│   ├── src/
+│   │   ├── components/         # Reusable UI components
+│   │   │   ├── Navbar.tsx           # Navigation bar
+│   │   │   ├── GoogleSignInButton.tsx  # Google OAuth button
+│   │   │   ├── LoadingSpinner.tsx   # Loading animation
+│   │   │   └── PrivateRoute.tsx     # Auth-protected route wrapper
+│   │   ├── pages/              # Page-level components
+│   │   │   ├── Home.tsx             # Landing page
+│   │   │   ├── Login.tsx            # Login page
+│   │   │   ├── Register.tsx         # Registration with OTP
+│   │   │   ├── Dashboard.tsx        # Main user dashboard
+│   │   │   ├── Syllabus.tsx         # Syllabus management
+│   │   │   ├── Quiz.tsx             # Quiz generation & list
+│   │   │   ├── InteractiveQuiz.tsx  # Quiz-taking interface
+│   │   │   ├── StudyMaterials.tsx   # AI study materials
+│   │   │   ├── Timetable.tsx        # Timetable management
+│   │   │   ├── Progress.tsx         # Progress analytics
+│   │   │   ├── Profile.tsx          # User profile settings
+│   │   │   ├── AIMentor.tsx         # AI Mentor chat
+│   │   │   └── AdminDashboard.tsx   # Admin panel
+│   │   ├── context/            # React Context providers
+│   │   │   ├── AuthContext.tsx      # Authentication state
+│   │   │   └── LoadingContext.tsx   # Global loading state
+│   │   ├── hooks/
+│   │   │   └── useAuth.ts          # Auth hook
+│   │   ├── App.tsx             # Root component with routing
+│   │   └── index.tsx           # React entry point
+│   ├── tailwind.config.js
+│   ├── tsconfig.json
+│   └── package.json
+│
+├── .gitignore
+├── package.json                # Root package (concurrently)
+├── start-app.js                # App startup script
+└── README.md
 ```
 
-2. Install dependencies:
-```bash
-# Backend
-cd backend
-npm install
+---
 
-# Frontend
-cd ../frontend
-npm install
-```
+## 📦 Database Models
 
-3. Set up environment variables:
-```bash
-# In the backend directory, create .env file:
-GEMINI_API_KEY=your_gemini_api_key_here
-MONGODB_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
-PORT=5000
-```
+### User
+| Field | Type | Description |
+|-------|------|-------------|
+| name | String | Full name |
+| email | String | Unique email (indexed) |
+| password | String | Hashed with bcrypt |
+| role | String | `user` or `admin` |
+| grade | String | Student's grade/class |
+| board | String | Education board (CBSE, ICSE, etc.) |
+| subjects | [String] | List of subjects |
+| googleId | String | Google OAuth ID |
+| isVerified | Boolean | Email verification status |
 
-## Google Gemini API Setup
+### Syllabus
+| Field | Type | Description |
+|-------|------|-------------|
+| userId | ObjectId | Reference to User |
+| subject | String | Subject name |
+| title | String | Syllabus title |
+| topics | [Object] | Array of topics with subtopics |
+| completedTopics | [Number] | Indices of completed topics |
 
-1. Go to [Google AI Studio](https://aistudio.google.com/) and create an API key
-2. Enable the Generative Language API in Google Cloud Console
-3. Add your API key to the `.env` file as `GEMINI_API_KEY`
+### Quiz & QuizResult
+- Stores AI-generated questions with options and correct answers
+- Tracks user responses, scores, and time taken
 
-**Important**: The free tier of Gemini API has usage limits. If you encounter "429 Too Many Requests" errors, you may need to enable billing for higher quotas.
+### Timetable
+- AI-generated study schedules with day-wise breakdowns
+- Linked to user and customizable
 
-## Running the Application
+---
 
-```bash
-# Terminal 1: Start the backend
-cd backend
-npm start
-
-# Terminal 2: Start the frontend
-cd frontend
-npm start
-```
-
-## API Endpoints
+## 🔌 API Endpoints
 
 ### Authentication
-- `POST /api/auth/register` - Register a new user
-- `POST /api/auth/login` - Login user
-- `GET /api/auth/profile` - Get user profile (requires authentication)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Register new user |
+| POST | `/api/auth/login` | Login with email/password |
+| POST | `/api/auth/google` | Google OAuth login |
+| GET | `/api/auth/profile` | Get logged-in user profile |
+| POST | `/api/auth/verify-otp` | Verify email OTP |
+| PUT | `/api/auth/change-password` | Change password |
 
-### Syllabus Management
-- `POST /api/syllabi` - Create a new syllabus
-- `GET /api/syllabi` - Get user's syllabi
-- `GET /api/syllabi/:id` - Get a specific syllabus
-- `PUT /api/syllabi/:id` - Update a syllabus
-- `DELETE /api/syllabi/:id` - Delete a syllabus
+### Syllabus
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/syllabi` | Create syllabus |
+| GET | `/api/syllabi` | Get all user syllabi |
+| GET | `/api/syllabi/:id` | Get specific syllabus |
+| PUT | `/api/syllabi/:id` | Update syllabus |
+| DELETE | `/api/syllabi/:id` | Delete syllabus |
+| POST | `/api/syllabi-upload/upload` | Upload & parse syllabus file |
 
-### AI Features
-- `POST /api/ai/generate-quiz` - Generate a quiz using AI
-- `POST /api/ai/generate-content` - Generate learning content using AI
-- `POST /api/ai/generate-study-materials` - Generate study materials based on syllabus
+### AI Services
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/ai/generate-quiz` | Generate AI quiz |
+| POST | `/api/ai/generate-content` | Generate learning content |
+| POST | `/api/ai/generate-study-materials` | Generate study materials |
+| POST | `/api/doubts/ask` | Ask a doubt |
+| POST | `/api/doubts/ask-contextual` | Contextual doubt solving |
+| POST | `/api/mentor/chat` | AI Mentor conversation |
 
-### Topics
-- `GET /api/topics/:syllabusId` - Get all topics for a syllabus
-- `GET /api/topics/:syllabusId/:topicIndex` - Get a specific topic
-- `POST /api/topics/mark-complete` - Mark a topic as completed
-- `POST /api/topics/explanation` - Get AI explanation for a topic
+### Progress & Timetable
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/progress` | Get overall progress |
+| GET | `/api/progress/achievements` | Get achievements |
+| GET | `/api/progress/recommendations` | Get personalized recommendations |
+| POST | `/api/timetables/generate-ai` | Generate AI timetable |
+| GET | `/api/timetables` | Get all timetables |
+| DELETE | `/api/timetables/:id` | Delete timetable |
 
-### Quizzes
-- `POST /api/quizzes` - Create a new quiz
-- `GET /api/quizzes` - Get quizzes
-- `GET /api/quizzes/:id` - Get a specific quiz
-- `POST /api/quizzes/:id/submit` - Submit quiz answers
+### Admin
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/users` | List all users (admin only) |
+| DELETE | `/api/users/:id` | Delete user (admin only) |
 
-### Progress Tracking
-- `GET /api/progress` - Get user's overall progress
-- `GET /api/progress/subject/:subject` - Get progress for a specific subject
-- `GET /api/progress/achievements` - Get user's achievements
-- `POST /api/progress/update-after-quiz` - Update progress after quiz completion
-- `POST /api/progress/syllabus-topic` - Track progress for a specific syllabus topic
-- `GET /api/progress/syllabus/:syllabusId` - Get progress for a specific syllabus
-- `GET /api/progress/recommendations` - Get personalized recommendations based on user progress
+---
 
-### Timetables
-- `POST /api/timetables` - Create a new timetable
-- `GET /api/timetables` - Get user's timetables
-- `GET /api/timetables/:id` - Get a specific timetable
-- `PUT /api/timetables/:id` - Update a timetable
-- `DELETE /api/timetables/:id` - Delete a timetable
-- `POST /api/timetables/generate-ai` - Generate AI-based timetable
+## ⚙️ Installation & Setup
 
-### Motivation Features
-- `GET /api/motivation/daily` - Get daily motivation
-- `GET /api/motivation/history` - Get motivation history
-- `PUT /api/motivation/:id/read` - Mark motivation as read
-- `GET /api/motivation/achievements` - Get user's achievements
-- `POST /api/motivation/notification` - Send motivational notification
+### Prerequisites
+- **Node.js** (v18 or above)
+- **MongoDB** (local or MongoDB Atlas)
+- **Google Gemini API Key** ([Get it here](https://aistudio.google.com/))
+- **Gmail App Password** (for Nodemailer email service)
 
-### Doubt Solving
-- `POST /api/doubts/ask` - Ask a question and get AI explanation
-- `POST /api/doubts/ask-contextual` - Ask a question with context from user's progress
+### 1. Clone the Repository
 
-## Contributing
+```bash
+git clone https://github.com/sksabdarali/Teaching-Plateform.git
+cd Teaching-Plateform
+```
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+### 2. Install Dependencies
 
-## License
+```bash
+# Install all dependencies (root + backend + frontend)
+npm run install-all
+```
 
-MIT License
+### 3. Configure Environment Variables
+
+Create a `.env` file inside the `backend/` folder:
+
+```env
+PORT=5000
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/teaching-platform
+JWT_SECRET=your_jwt_secret_key
+GEMINI_API_KEY=your_google_gemini_api_key
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+EMAIL_USER=your_gmail@gmail.com
+EMAIL_PASS=your_gmail_app_password
+```
+
+Create a `.env` file inside the `frontend/` folder:
+
+```env
+REACT_APP_API_URL=http://localhost:5000
+REACT_APP_GOOGLE_CLIENT_ID=your_google_oauth_client_id
+```
+
+### 4. Run the Application
+
+```bash
+# Start both backend & frontend concurrently
+npm run dev
+```
+
+- **Backend** runs on: `http://localhost:5000`
+- **Frontend** runs on: `http://localhost:3000`
+
+---
+
+## 🔑 Key Implementation Details
+
+### AI Integration (Google Gemini API)
+- Uses `@google/generative-ai` package with **model fallback system**
+- Primary model: `gemini-2.0-flash` (fastest), with fallbacks to `gemini-1.5-flash`, `gemini-1.5-pro`, etc.
+- Custom prompts engineered for educational content generation
+- Built-in **JSON response parsing** with error recovery for AI outputs
+- Rate limiting handled gracefully with user-friendly error messages
+
+### Authentication Flow
+1. User registers with email → OTP sent via Nodemailer → email verified
+2. OR user signs in via Google OAuth 2.0
+3. JWT token issued on successful login, stored on client side
+4. Protected routes verify JWT via `auth` middleware on every request
+
+### File Upload & Parsing
+- Supports **PDF** (pdf-parse), **DOCX** (Mammoth), and plain text uploads
+- Multer handles multipart file uploads (max 5MB)
+- Uploaded syllabus files are parsed by AI to extract structured topics
+
+### Cron Jobs
+- **Daily motivational quotes**: Runs daily via `node-cron`, sends motivational emails to all verified users using Nodemailer
+
+---
+
+## 📱 Application Pages
+
+| Page | Description |
+|------|-------------|
+| **Home** | Landing page with feature overview |
+| **Register/Login** | Authentication with email OTP & Google OAuth |
+| **Dashboard** | Overview of progress, subjects, and recent activity |
+| **Syllabus** | Upload, view, and manage syllabi with topic tracking |
+| **Quiz** | Generate AI quizzes and take interactive assessments |
+| **Study Materials** | AI-generated learning content for any topic |
+| **Timetable** | Create and manage AI-generated study schedules |
+| **Progress** | Visual analytics with charts and achievement badges |
+| **AI Mentor** | Chat with AI mentor for guided learning |
+| **Profile** | Update personal info and change password |
+| **Admin Dashboard** | Manage users and monitor platform (admin only) |
+
+---
+
+## 🧪 Testing the API
+
+You can test the API using tools like **Postman** or **Thunder Client**:
+
+```bash
+# Health check
+GET http://localhost:5000/
+
+# Register a new user
+POST http://localhost:5000/api/auth/register
+Body: { "name": "John", "email": "john@example.com", "password": "123456" }
+
+# Login
+POST http://localhost:5000/api/auth/login
+Body: { "email": "john@example.com", "password": "123456" }
+
+# Generate AI Quiz (requires JWT token in Authorization header)
+POST http://localhost:5000/api/ai/generate-quiz
+Headers: { "Authorization": "Bearer <your_jwt_token>" }
+Body: { "topic": "Photosynthesis", "difficulty": "medium", "numberOfQuestions": 5 }
+```
+
+---
+
+## 🚀 Deployment
+
+The application is deployed on **Render**:
+- Backend and frontend are served from the same instance
+- Frontend is built using `npm run build` and served as static files
+- MongoDB Atlas is used as the production database
+- Environment variables are configured in Render's dashboard
+
+---
+
+## 📈 Future Scope
+
+- **Video Content Integration** – Embed educational videos for topics
+- **Peer-to-Peer Learning** – Collaborative study features
+- **Mobile App** – React Native version for mobile users
+- **Advanced Analytics** – Detailed performance reports with export
+- **Parent/Teacher Dashboard** – Allow parents/teachers to monitor progress
+- **Multi-language Support** – Internationalization for wider reach
+
+---
+
+## 👨‍💻 Author
+
+**SK Sabdar Ali**
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
